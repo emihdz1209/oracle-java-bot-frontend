@@ -10,7 +10,6 @@ import { ProtectedRoute } from "./ProtectedRoute";
 
 import { NotFoundPage } from "@/shared/pages/NotFoundPage";
 
-import { CreateTaskPriorityPage } from "@/features/taskPriorities/pages/CreateTaskPriorityPage";
 
 
 
@@ -30,14 +29,6 @@ export const AppRouter = () => {
           }
         />
 
-        <Route
-            path={ROUTES.priorities}
-            element={
-                <ProtectedRoute>
-                <CreateTaskPriorityPage />
-                </ProtectedRoute>
-            }
-        />
 
         <Route path="/" element={<LoginPage />} />
 
