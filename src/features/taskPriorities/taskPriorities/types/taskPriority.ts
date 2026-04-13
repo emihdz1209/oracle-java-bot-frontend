@@ -1,13 +1,8 @@
 export interface TaskPriority {
-  prioridadId: number
-  nombre: string
-  descripcion?: string
-  orden: number
+  id: number;
+  nombre: string;
 }
 
 export interface CreateTaskPriorityRequest {
-  prioridadId: number
-  nombre: string
-  descripcion?: string
-  orden: number
+  nombre: string;
 }
