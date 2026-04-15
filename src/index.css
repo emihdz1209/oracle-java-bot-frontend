@@ -614,7 +614,7 @@ button.DoneButton:hover,
 }
 
 /* ── Nav Toggle ────────────────────────────────────────────────── */
-.nav-toggle-btn {
+.nav-toggle-btn{
   position: fixed;
   top: 14px;
   left: 10px;
