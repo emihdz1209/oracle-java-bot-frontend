@@ -9,8 +9,15 @@ export interface Tarea {
   prioridadId: number;
   projectId: string;
   sprintId: string | null;
+  sprintNombre: string | null;
   tiempoEstimado: number;
   tiempoReal: number;
+}
+
+export interface TaskAssignment {
+  nombre: string;
+  taskId: string;
+  userId: string;
 }
 
 export interface CreateTareaRequest {

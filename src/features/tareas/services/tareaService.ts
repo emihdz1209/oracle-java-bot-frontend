@@ -1,8 +1,23 @@
 import { apiClient } from "@/shared/api/apiClient";
-import type { Tarea, CreateTareaRequest, UpdateTareaRequest } from "@/features/tareas/types/tarea";
+import type {
+  Tarea,
+  TaskAssignment,
+  CreateTareaRequest,
+  UpdateTareaRequest,
+} from "@/features/tareas/types/tarea";
 
 export const getTareasByProyecto = async (projectId: string): Promise<Tarea[]> => {
   const response = await apiClient.get<Tarea[]>(`/api/projects/${projectId}/tasks`);
+  return response.data;
+};
+
+export const getTareaById = async (taskId: string): Promise<Tarea> => {
+  const response = await apiClient.get<Tarea>(`/api/tasks/${taskId}`);
+  return response.data;
+};
+
+export const getTaskUsers = async (taskId: string): Promise<TaskAssignment[]> => {
+  const response = await apiClient.get<TaskAssignment[]>(`/api/tasks/${taskId}/users`);
   return response.data;
 };
 

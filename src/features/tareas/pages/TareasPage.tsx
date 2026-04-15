@@ -11,6 +11,7 @@ import { useEquipos } from "@/features/equipos/hooks/useEquipos";
 import { useProyectos } from "@/features/proyectos/hooks/useProyectos";
 import { CreateTareaForm } from "@/features/tareas/components/CreateTareaForm";
 import { TareaList } from "@/features/tareas/components/TareaList";
+import { TareasModal } from "@/features/tareas/components/TareasModal";
 import { NavBar } from "@/shared/pages/NavBar";
 import { AppModal } from "@/shared/components/AppModal";
 import type { Tarea } from "@/features/tareas/types/tarea";
@@ -46,17 +47,18 @@ const persistStoredValue = (key: string, value: string) => {
 };
 
 export const TareasPage = () => {
-  const [selectedTeamId,    setSelectedTeamId]    = useState<string>(() => readStoredValue(TEAM_STORAGE_KEY));
+  const [selectedTeamId, setSelectedTeamId] = useState<string>(() => readStoredValue(TEAM_STORAGE_KEY));
   const [selectedProjectId, setSelectedProjectId] = useState<string>(() => readStoredValue(PROJECT_STORAGE_KEY));
-  const [modalOpen,         setModalOpen]          = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
-  const { data: equipos }   = useEquipos();
+  const { data: equipos } = useEquipos();
   const { data: proyectos, isLoading: lp } = useProyectos(selectedTeamId || undefined);
-  const { data: tareas,    isLoading: lt } = useTareas(selectedProjectId || undefined);
+  const { data: tareas, isLoading: lt } = useTareas(selectedProjectId || undefined);
 
-  const createMutation      = useCreateTarea(selectedProjectId);
-  const statusMutation      = useUpdateTareaStatus(selectedProjectId);
-  const deleteMutation      = useDeleteTarea(selectedProjectId);
+  const createMutation = useCreateTarea(selectedProjectId);
+  const statusMutation = useUpdateTareaStatus(selectedProjectId);
+  const deleteMutation = useDeleteTarea(selectedProjectId);
 
   useEffect(() => {
     persistStoredValue(TEAM_STORAGE_KEY, selectedTeamId);
@@ -64,6 +66,10 @@ export const TareasPage = () => {
 
   useEffect(() => {
     persistStoredValue(PROJECT_STORAGE_KEY, selectedProjectId);
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    setSelectedTaskId(null);
   }, [selectedProjectId]);
 
   useEffect(() => {
@@ -104,6 +110,7 @@ export const TareasPage = () => {
   const handleTeamChange = (teamId: string) => {
     setSelectedTeamId(teamId);
     setSelectedProjectId("");
+    setSelectedTaskId(null);
   };
 
   const handleCreate = (data: {
@@ -120,10 +127,14 @@ export const TareasPage = () => {
       prioridadId: data.prioridadId,
       ...(data.tiempoEstimado !== null && { tiempoEstimado: data.tiempoEstimado }),
     };
-    createMutation.mutate(payload, { onSuccess: () => setModalOpen(false) });
+    createMutation.mutate(payload, { onSuccess: () => setCreateModalOpen(false) });
   };
 
   const handleDelete = (taskId: string) => deleteMutation.mutate(taskId);
+
+  const handleOpenTaskDetails = (taskId: string) => setSelectedTaskId(taskId);
+
+  const handleCloseTaskDetails = () => setSelectedTaskId(null);
 
   const handleStatusChange = (tarea: Tarea, newEstadoId: number) =>
     statusMutation.mutate({ taskId: tarea.taskId, estadoId: newEstadoId });
@@ -140,7 +151,7 @@ export const TareasPage = () => {
         <Button
           className="AddButton"
           startIcon={<AddIcon />}
-          onClick={() => setModalOpen(true)}
+          onClick={() => setCreateModalOpen(true)}
           disabled={!selectedProjectId}
         >
           Nueva tarea
@@ -201,17 +212,20 @@ export const TareasPage = () => {
           tareas={tareas || []}
           onDelete={handleDelete}
           onStatusChange={handleStatusChange}
+          onOpenDetails={handleOpenTaskDetails}
         />
       )}
 
       {/* Create modal */}
-      <AppModal open={modalOpen} onClose={() => setModalOpen(false)} title="Nueva tarea">
+      <AppModal open={createModalOpen} onClose={() => setCreateModalOpen(false)} title="Nueva tarea">
         <CreateTareaForm
           onSubmit={handleCreate}
           isPending={createMutation.isPending}
           prioridades={PRIORIDADES}
         />
       </AppModal>
+
+      <TareasModal taskId={selectedTaskId} onClose={handleCloseTaskDetails} />
     </div>
   );
 };

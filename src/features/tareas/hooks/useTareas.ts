@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getTareasByProyecto,
+  getTareaById,
+  getTaskUsers,
   createTarea,
   updateTarea,
   updateTareaStatus,
@@ -13,6 +15,22 @@ export const useTareas = (projectId?: string) => {
     queryKey: ["tareas", projectId],
     queryFn: () => getTareasByProyecto(projectId!),
     enabled: !!projectId,
+  });
+};
+
+export const useTareaById = (taskId?: string) => {
+  return useQuery({
+    queryKey: ["tarea", taskId],
+    queryFn: () => getTareaById(taskId!),
+    enabled: !!taskId,
+  });
+};
+
+export const useTaskUsers = (taskId?: string) => {
+  return useQuery({
+    queryKey: ["taskUsers", taskId],
+    queryFn: () => getTaskUsers(taskId!),
+    enabled: !!taskId,
   });
 };
 

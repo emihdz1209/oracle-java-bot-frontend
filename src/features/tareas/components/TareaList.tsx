@@ -33,14 +33,31 @@ interface TareaCardProps {
   tarea: Tarea;
   onDelete: (taskId: string) => void;
   onStatusChange: (tarea: Tarea, newEstadoId: number) => void;
+  onOpenDetails: (taskId: string) => void;
 }
 
-function TareaCard({ tarea, onDelete, onStatusChange }: TareaCardProps) {
+function TareaCard({ tarea, onDelete, onStatusChange, onOpenDetails }: TareaCardProps) {
   const p = PRIO[tarea.prioridadId] || { label: "—", bg: "#E4E4E7", color: "#52525B" };
   const done = tarea.estadoId === 3;
 
+  const handleCardKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    onOpenDetails(tarea.taskId);
+  };
+
   return (
-    <div className="tarea-card">
+    <div
+      className="tarea-card tarea-card-clickable"
+      onClick={() => onOpenDetails(tarea.taskId)}
+      onKeyDown={handleCardKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={`Ver detalle de ${tarea.titulo}`}
+    >
       <div className="tarea-card-meta">
         <span className="prio-badge" style={{ background: p.bg, color: p.color }}>
           {p.label}
@@ -59,13 +76,20 @@ function TareaCard({ tarea, onDelete, onStatusChange }: TareaCardProps) {
         <Button
           className="DoneButton"
           size="small"
-          onClick={() => onStatusChange(tarea, done ? 1 : 3)}
+          onClick={(event) => {
+            event.stopPropagation();
+            onStatusChange(tarea, done ? 1 : 3);
+          }}
           style={{ fontSize: "11px", padding: "2px 8px", minWidth: 0 }}
         >
           {done ? "Reabrir" : "Completar"}
         </Button>
         <button
-          onClick={() => onDelete(tarea.taskId)}
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete(tarea.taskId);
+          }}
           className="tarea-delete-btn"
           title="Eliminar"
         >
@@ -80,9 +104,10 @@ interface TareaListProps {
   tareas: Tarea[];
   onDelete: (taskId: string) => void;
   onStatusChange: (tarea: Tarea, newEstadoId: number) => void;
+  onOpenDetails: (taskId: string) => void;
 }
 
-export const TareaList = ({ tareas, onDelete, onStatusChange }: TareaListProps) => {
+export const TareaList = ({ tareas, onDelete, onStatusChange, onOpenDetails }: TareaListProps) => {
   if (!tareas || tareas.length === 0)
     return <p className="kanban-empty">No hay tareas registradas</p>;
 
@@ -117,6 +142,7 @@ export const TareaList = ({ tareas, onDelete, onStatusChange }: TareaListProps) 
                     tarea={t}
                     onDelete={onDelete}
                     onStatusChange={onStatusChange}
+                    onOpenDetails={onOpenDetails}
                   />
                 ))
               )}
