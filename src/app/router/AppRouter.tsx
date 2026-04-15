@@ -1,4 +1,4 @@
-/// src/app/router/AppRouter.tsx
+// src/app/router/AppRouter.tsx
 
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
@@ -8,6 +8,7 @@ import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { CreateUserPage } from "@/features/users/pages/CreateUserPage";
 import { EquiposPage } from "@/features/equipos/pages/EquiposPage";
+import { EquipoDetailPage } from "@/features/equipos/pages/EquipoDetailPage"; // 🔹 NUEVO
 import { ProyectosPage } from "@/features/proyectos/pages/ProyectosPage";
 import { TareasPage } from "@/features/tareas/pages/TareasPage";
 import { CreateTaskPriorityPage } from "@/features/taskPriorities/taskPriorities/pages/CreateTaskPriorityPage";
@@ -45,6 +46,16 @@ export const AppRouter = () => {
         <Route
           path={ROUTES.equipos}
           element={<ProtectedRoute><EquiposPage /></ProtectedRoute>}
+        />
+
+        {/* 🔥 NUEVO: Detalle de equipo */}
+        <Route
+          path="/equipos/:teamId"
+          element={
+            <ProtectedRoute>
+              <EquipoDetailPage />
+            </ProtectedRoute>
+          }
         />
 
         {/* 🔐 Users */}

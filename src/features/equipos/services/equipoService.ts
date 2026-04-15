@@ -1,3 +1,4 @@
+// src/features/equipos/services/equipoService.ts
 import { apiClient } from "@/shared/api/apiClient";
 import type { Equipo, CreateEquipoRequest } from "@/features/equipos/types/equipo";
 

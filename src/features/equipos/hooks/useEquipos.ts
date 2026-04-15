@@ -1,3 +1,4 @@
+// src/features/equipos/hooks/useEquipos.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getEquipos, createEquipo } from "@/features/equipos/services/equipoService";
 import type { CreateEquipoRequest } from "@/features/equipos/types/equipo";

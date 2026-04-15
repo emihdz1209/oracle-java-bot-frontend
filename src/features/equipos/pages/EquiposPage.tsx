@@ -1,3 +1,5 @@
+// src/features/equipos/pages/EquiposPage.tsx
+
 import React, { useState } from "react";
 import {
   TextField,
@@ -9,6 +11,7 @@ import {
   FormControl,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { useNavigate } from "react-router-dom"; // 🔹 NUEVO
 import { useEquipos, useCreateEquipo } from "@/features/equipos/hooks/useEquipos";
 import { useUsers } from "@/features/users/hooks/useUsers";
 import { NavBar } from "@/shared/pages/NavBar";
@@ -17,30 +20,34 @@ import { AppModal } from "@/shared/components/AppModal";
 const EMPTY = { nombre: "", descripcion: "", ownerId: "" };
 
 export const EquiposPage = () => {
+  const navigate = useNavigate(); // 🔹 NUEVO
+
   const { data: equipos, isLoading } = useEquipos();
   const { data: users } = useUsers();
   const createMutation = useCreateEquipo();
+
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
-    setForm({ ...form, [(e.target as HTMLInputElement).name]: (e.target as HTMLInputElement).value });
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>
+  ) => {
+    setForm({
+      ...form,
+      [(e.target as HTMLInputElement).name]: (e.target as HTMLInputElement).value,
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.nombre.trim() || !form.ownerId) return;
+
     createMutation.mutate(form, {
       onSuccess: () => {
         setForm(EMPTY);
         setModalOpen(false);
       },
     });
-  };
-
-  const getUserNombre = (userId: string) => {
-    const u = (users || []).find((us) => us.userId === userId);
-    return u ? `${u.primerNombre} ${u.apellido}` : "—";
   };
 
   return (
@@ -52,7 +59,11 @@ export const EquiposPage = () => {
           <h2>Equipos</h2>
           <p className="page-subtitle">Gestión de equipos de trabajo</p>
         </div>
-        <Button className="AddButton" startIcon={<AddIcon />} onClick={() => setModalOpen(true)}>
+        <Button
+          className="AddButton"
+          startIcon={<AddIcon />}
+          onClick={() => setModalOpen(true)}
+        >
           Nuevo equipo
         </Button>
       </div>
@@ -61,8 +72,11 @@ export const EquiposPage = () => {
         <span className="section-label">
           Equipos registrados · {(equipos || []).length}
         </span>
+
         {isLoading ? (
           <CircularProgress />
+        ) : !equipos || equipos.length === 0 ? (
+          <p>No hay equipos aún</p>
         ) : (
           <table>
             <thead>
@@ -70,14 +84,26 @@ export const EquiposPage = () => {
                 <th>Nombre</th>
                 <th>Descripción</th>
                 <th>Owner</th>
+                <th>Miembros</th>
+                <th>Acciones</th> {/* 🔹 NUEVO */}
               </tr>
             </thead>
             <tbody>
-              {(equipos || []).map((eq) => (
+              {equipos.map((eq) => (
                 <tr key={eq.teamId}>
                   <td className="cell-primary">{eq.nombre}</td>
                   <td>{eq.descripcion || "—"}</td>
-                  <td>{getUserNombre(eq.ownerId)}</td>
+                  <td>{eq.ownerNombre}</td>
+                  <td>{eq.totalMembers}</td>
+                  <td>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => navigate(`/equipos/${eq.teamId}`)}
+                    >
+                      Ver
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -85,7 +111,11 @@ export const EquiposPage = () => {
         )}
       </div>
 
-      <AppModal open={modalOpen} onClose={() => setModalOpen(false)} title="Nuevo equipo">
+      <AppModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Nuevo equipo"
+      >
         <form onSubmit={handleSubmit} className="modal-form">
           <TextField
             name="nombre"
@@ -96,6 +126,7 @@ export const EquiposPage = () => {
             size="small"
             fullWidth
           />
+
           <TextField
             name="descripcion"
             label="Descripción"
@@ -106,12 +137,15 @@ export const EquiposPage = () => {
             size="small"
             fullWidth
           />
+
           <FormControl size="small" required fullWidth>
             <InputLabel>Owner</InputLabel>
             <Select
               name="ownerId"
               value={form.ownerId}
-              onChange={(e) => setForm({ ...form, ownerId: e.target.value as string })}
+              onChange={(e) =>
+                setForm({ ...form, ownerId: e.target.value as string })
+              }
               label="Owner"
             >
               {(users || []).map((u) => (
@@ -121,6 +155,7 @@ export const EquiposPage = () => {
               ))}
             </Select>
           </FormControl>
+
           <Button
             type="submit"
             variant="contained"
@@ -128,7 +163,11 @@ export const EquiposPage = () => {
             disabled={createMutation.isPending}
             fullWidth
           >
-            {createMutation.isPending ? <CircularProgress size={18} /> : "Crear equipo"}
+            {createMutation.isPending ? (
+              <CircularProgress size={18} />
+            ) : (
+              "Crear equipo"
+            )}
           </Button>
         </form>
       </AppModal>
