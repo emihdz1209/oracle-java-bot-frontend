@@ -346,14 +346,21 @@ table tr:hover td      { background: var(--surface-2); }
   background: transparent;
   border: none;
   cursor: pointer;
-  color: var(--border-strong);
-  padding: 3px 4px;
-  display: flex;
+  color: var(--danger);
+  padding: 6px;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   border-radius: var(--r-xs);
-  transition: color 0.15s;
+  transition: transform 0.12s ease, color 0.12s ease;
+  transform-origin: center center;
 }
-.tarea-delete-btn:hover { color: var(--danger); }
+.tarea-delete-btn:hover {
+  transform: scale(1.08);
+}
+.tarea-delete-btn:active {
+  transform: scale(0.98);
+}
 .tarea-delete-btn svg  { font-size: 13px !important; }
 
 /* ── Progress Bar ──────────────────────────────────────────────── */

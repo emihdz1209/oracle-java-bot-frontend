@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import { CircularProgress, Button, FormControl, Select, MenuItem } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import {
@@ -21,9 +21,33 @@ const PRIORIDADES = [
   { prioridadId: 3, nombre: "Baja" },
 ];
 
+const TEAM_STORAGE_KEY = "tareas.selectedTeamId";
+const PROJECT_STORAGE_KEY = "tareas.selectedProjectId";
+
+const readStoredValue = (key: string) => {
+  try {
+    return localStorage.getItem(key) ?? "";
+  } catch {
+    return "";
+  }
+};
+
+const persistStoredValue = (key: string, value: string) => {
+  try {
+    if (value) {
+      localStorage.setItem(key, value);
+      return;
+    }
+
+    localStorage.removeItem(key);
+  } catch {
+    // Ignore storage errors to keep filtering functional.
+  }
+};
+
 export const TareasPage = () => {
-  const [selectedTeamId,    setSelectedTeamId]    = useState<string>("");
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [selectedTeamId,    setSelectedTeamId]    = useState<string>(() => readStoredValue(TEAM_STORAGE_KEY));
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(() => readStoredValue(PROJECT_STORAGE_KEY));
   const [modalOpen,         setModalOpen]          = useState(false);
 
   const { data: equipos }   = useEquipos();
@@ -33,6 +57,48 @@ export const TareasPage = () => {
   const createMutation      = useCreateTarea(selectedProjectId);
   const statusMutation      = useUpdateTareaStatus(selectedProjectId);
   const deleteMutation      = useDeleteTarea(selectedProjectId);
+
+  useEffect(() => {
+    persistStoredValue(TEAM_STORAGE_KEY, selectedTeamId);
+  }, [selectedTeamId]);
+
+  useEffect(() => {
+    persistStoredValue(PROJECT_STORAGE_KEY, selectedProjectId);
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    if (!equipos || !selectedTeamId) {
+      return;
+    }
+
+    const teamExists = equipos.some((eq) => eq.teamId === selectedTeamId);
+
+    if (!teamExists) {
+      setSelectedTeamId("");
+      setSelectedProjectId("");
+    }
+  }, [equipos, selectedTeamId]);
+
+  useEffect(() => {
+    if (!selectedProjectId) {
+      return;
+    }
+
+    if (!selectedTeamId) {
+      setSelectedProjectId("");
+      return;
+    }
+
+    if (!proyectos) {
+      return;
+    }
+
+    const projectExists = proyectos.some((project) => project.projectId === selectedProjectId);
+
+    if (!projectExists) {
+      setSelectedProjectId("");
+    }
+  }, [selectedProjectId, selectedTeamId, proyectos]);
 
   // Reset project when team changes
   const handleTeamChange = (teamId: string) => {
