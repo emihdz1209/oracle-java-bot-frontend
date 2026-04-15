@@ -1,6 +1,6 @@
 /// src/features/auth/context/AuthContext.tsx
 
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState } from "react";
 import type { ReactNode } from "react";
 
 import type {
@@ -24,6 +24,30 @@ interface Props {
   children: ReactNode;
 }
 
+const AUTH_TOKEN_KEY = "token";
+const AUTH_USER_KEY = "user";
+const EMPTY_AUTH_STATE: AuthState = { user: null, token: null };
+
+const getStoredAuthState = (): AuthState => {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+  const user = localStorage.getItem(AUTH_USER_KEY);
+
+  if (!token || !user) {
+    return EMPTY_AUTH_STATE;
+  }
+
+  try {
+    return {
+      token,
+      user: JSON.parse(user) as AuthUser,
+    };
+  } catch {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+    return EMPTY_AUTH_STATE;
+  }
+};
+
 const mapRole = (rolId: number): Role => {
   switch (rolId) {
     case 1:
@@ -36,23 +60,7 @@ const mapRole = (rolId: number): Role => {
 };
 
 export const AuthProvider = ({ children }: Props) => {
-  const [auth, setAuth] = useState<AuthState>({
-    user: null,
-    token: null,
-  });
-
-  // 🔄 Persistencia al recargar
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const user = localStorage.getItem("user");
-
-    if (token && user) {
-      setAuth({
-        token,
-        user: JSON.parse(user),
-      });
-    }
-  }, []);
+  const [auth, setAuth] = useState<AuthState>(() => getStoredAuthState());
 
   const login = (data: LoginResponse) => {
     const user: AuthUser = {
@@ -61,8 +69,8 @@ export const AuthProvider = ({ children }: Props) => {
       role: mapRole(data.rolId),
     };
 
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
 
     setAuth({
       token: data.token,
@@ -71,10 +79,10 @@ export const AuthProvider = ({ children }: Props) => {
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
 
-    setAuth({ user: null, token: null });
+    setAuth(EMPTY_AUTH_STATE);
   };
 
   return (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   TextField,
   Button,
@@ -12,7 +12,12 @@ import { ROUTES } from "@/app/router/routes";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { auth, login } = useAuth();
+
+  const redirectTo =
+    (location.state as { from?: { pathname?: string } } | null)?.from
+      ?.pathname ?? ROUTES.dashboard;
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -20,9 +25,9 @@ export const LoginPage = () => {
 
   useEffect(() => {
     if (auth.token) {
-      navigate("/", { replace: true });
+      navigate(redirectTo, { replace: true });
     }
-  }, [auth.token]);
+  }, [auth.token, navigate, redirectTo]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -35,7 +40,7 @@ export const LoginPage = () => {
     try {
       const data = await authService.login(form);
       login(data);
-      navigate(ROUTES.dashboard, { replace: true });
+      navigate(redirectTo, { replace: true });
     } catch (err: any) {
       setError(
         err.response?.data?.message || err.message || "Error al iniciar sesión"
