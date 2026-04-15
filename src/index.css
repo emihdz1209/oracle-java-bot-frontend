@@ -616,21 +616,21 @@ button.DoneButton:hover,
   left: 5.5px;
   width: 40px;
   height: 40px;
-  background: #ffffff;
+  background: var(--accent);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--accent-hover);
+  color: #fff;
   z-index: 1200;
   transition:
     background 0.15s,
     border-color 0.15s;
 }
 .nav-toggle-btn:hover {
-  background: var(--surface-3);
+  background: var(--accent-hover);
   border-color: var(--border-strong);
 }
 .nav-toggle-btn svg {
