@@ -1,4 +1,4 @@
-/// src/features/proyectos/components/ProjectDashboard.tsx
+/// src/features/dashboard/components/GeneralDashboard.tsx
 
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
@@ -48,7 +48,7 @@ const DEV_COLORS = [
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export const ProjectDashboard = ({ projectId }: Props) => {
+export const GeneralDashboard = ({ projectId }: Props) => {
     const [selectedSprintId, setSelectedSprintId] = useState<string>(
         () => readStoredSprint(projectId)
     );

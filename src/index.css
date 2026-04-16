@@ -239,6 +239,7 @@ table tr:hover td {
 /* ── Stat Cards (Dashboard) ────────────────────────────────────── */
 .stat-row {
   display: flex;
+  flex-direction: column;
   gap: 12px;
   width: 100%;
   flex-wrap: wrap;
