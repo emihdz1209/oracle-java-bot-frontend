@@ -241,8 +241,8 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     const multilineOption = {
         tooltip: { trigger: "axis" },
         legend: { data: devNames, top: 0, textStyle: { fontSize: 11 } },
-        grid: { left: "3%", right: "4%", bottom: "8%", top: "36px", containLabel: true },
-        xAxis: { type: "category", data: allSprintNames, boundaryGap: false },
+        grid: { left: "8%", right: "8%", bottom: "8%", top: "36px", containLabel: true },
+        xAxis: { type: "category", data: allSprintNames, boundaryGap: ['2%', '8%'] },
         yAxis: { type: "value", name: "Tareas", nameTextStyle: { fontSize: 11 } },
         series: devPerf.map((dev) => ({
         name: dev.nombre,
@@ -377,41 +377,13 @@ export const ProjectDashboard = ({ projectId }: Props) => {
             />
         </div>
 
-        {/* Row 1: Gauge + Donut + Horizontal Bar */}
-        <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}
-        >
-            <ChartCard title="Progreso General">
-            <ReactECharts option={gaugeOption} style={{ height: 240 }} />
-            </ChartCard>
-
-            <ChartCard title="Sprint Completion Rate">
-            {donutOption ? (
-                <ReactECharts option={donutOption} style={{ height: 240 }} />
-            ) : (
-                <EmptyState />
-            )}
-            </ChartCard>
-
-            <ChartCard title="Responsabilidad Individual">
-            {devPerf.length > 0 ? (
-                <ReactECharts
-                option={hbarOption}
-                style={{ height: Math.max(240, devPerf.length * 48) }}
-                />
-            ) : (
-                <EmptyState />
-            )}
-            </ChartCard>
-        </div>
-
         {/* Row 2: Stacked Bar + Grouped Bar */}
         <div
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}
         >
             <ChartCard title="Entrega a Tiempo por Sprint">
             {sprints.length > 0 ? (
-                <ReactECharts option={stackedBarOption} style={{ height: 280 }} />
+                <ReactECharts option={stackedBarOption} style={{ height: 180 }} />
             ) : (
                 <EmptyState />
             )}
@@ -419,7 +391,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
 
             <ChartCard title="Estimación vs Real (hrs)">
             {sprints.length > 0 ? (
-                <ReactECharts option={groupedBarOption} style={{ height: 280 }} />
+                <ReactECharts option={groupedBarOption} style={{ height: 180 }} />
             ) : (
                 <EmptyState />
             )}
@@ -428,11 +400,22 @@ export const ProjectDashboard = ({ projectId }: Props) => {
 
         {/* Row 3: Multi-line + Workload Stacked Bars */}
         <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 8 }}
+            style={{ display: "grid", gridTemplateColumns: "2fr 2fr 2fr", gap: 16, marginBottom: 8 }}
         >
+            <ChartCard title="Responsabilidad Individual">
+            {devPerf.length > 0 && allSprintNames.length > 0 ? (
+                <ReactECharts
+                option={hbarOption}
+                style={{ height: 210 }}
+                />
+            ) : (
+                <EmptyState />
+            )}
+            </ChartCard>
+
             <ChartCard title="Productividad Histórica por Desarrollador">
             {devPerf.length > 0 && allSprintNames.length > 0 ? (
-                <ReactECharts option={multilineOption} style={{ height: 280 }} />
+                <ReactECharts option={multilineOption} style={{ height: 210 }} />
             ) : (
                 <EmptyState />
             )}
@@ -440,7 +423,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
 
             <ChartCard title="Carga de Trabajo (hrs por sprint)">
             {devPerf.length > 0 && allSprintNames.length > 0 ? (
-                <ReactECharts option={workloadOption} style={{ height: 280 }} />
+                <ReactECharts option={workloadOption} style={{ height: 210 }} />
             ) : (
                 <EmptyState />
             )}
