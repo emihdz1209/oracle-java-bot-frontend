@@ -570,6 +570,16 @@ table tr:hover td {
   gap: 16px;
   margin-bottom: 12px;
 }
+.task-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.task-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
 .task-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -618,11 +628,35 @@ table tr:hover td {
   color: var(--text-2);
   white-space: pre-wrap;
 }
+.task-system-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.task-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.task-form-feedback {
+  margin: 0;
+  font-size: 0.8rem;
+}
+.task-form-feedback--error {
+  color: var(--danger);
+}
+.task-form-feedback--success {
+  color: var(--success);
+}
 .task-detail-feedback,
 .task-detail-empty {
   margin: 0;
   font-size: 0.82rem;
   color: var(--text-3);
+}
+.task-assignee-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .task-assignee-list {
   margin: 0;
@@ -641,6 +675,30 @@ table tr:hover td {
   border-radius: var(--r-xs);
   background: var(--surface-2);
   padding: 8px 10px;
+}
+.task-assignee-remove-btn {
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-xs);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.task-assignee-remove-btn:hover {
+  background: var(--danger-subtle);
+  transform: scale(1.03);
+}
+.task-assignee-remove-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.task-assignee-remove-btn svg {
+  font-size: 1rem !important;
 }
 
 /* ── MUI Overrides ─────────────────────────────────────────────── */
@@ -1225,7 +1283,12 @@ button.DoneButton:hover,
   .App { padding: 0 0.75rem 2rem; }
   .kanban-board { grid-template-columns: 1fr; }
   .stat-card { max-width: none; }
+  .task-edit-grid { grid-template-columns: 1fr; }
   .task-detail-grid { grid-template-columns: 1fr; }
+  .task-assignee-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
   .tareas-layout--with-panel .tareas-main { padding-right: 0; }
   .tareas-side-modal {
     position: fixed;

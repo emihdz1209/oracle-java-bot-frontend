@@ -223,7 +223,11 @@ export const TareasPage = () => {
           </div>
         </div>
 
-        <TareasModal taskId={selectedTaskId} onClose={handleCloseTaskDetails} />
+        <TareasModal
+          taskId={selectedTaskId}
+          projectId={selectedProjectId || undefined}
+          onClose={handleCloseTaskDetails}
+        />
       </div>
 
       {/* Create modal */}
