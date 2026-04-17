@@ -46,6 +46,13 @@ const DEV_COLORS = [
     "#dc2626", "#0891b2", "#ea580c", "#65a30d",
 ];
 
+// Agrega DESPUÉS de DEV_COLORS:
+const shortName = (fullName: string): string => {
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length < 2) return fullName;
+    return `${parts[0]} ${parts[1][0]}.`;
+};
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export const ProjectDashboard = ({ projectId }: Props) => {
@@ -121,14 +128,18 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         : null;
 
     // ── All sprint names (for multi-sprint charts) ───────────────────
+    const sprintOrderMap = new Map(sprints.map((s, i) => [s.sprintId, i]));
     const allSprintNames = Array.from(
         new Map(
-        devPerf
-            .flatMap((d) => d.historicoSprints)
-            .map((s) => [s.sprintId, s.sprintNombre])
-        ).values()
-    );
-    const devNames = devPerf.map((d) => d.nombre);
+            devPerf
+                .flatMap((d) => d.historicoSprints)
+                .map((s) => [s.sprintId, s.sprintNombre])
+        ).entries()
+    )
+    .sort(([idA], [idB]) => (sprintOrderMap.get(idA) ?? 0) - (sprintOrderMap.get(idB) ?? 0))
+    .map(([, name]) => name);
+    const devNames = devPerf.map((d) => shortName(d.nombre));
+
 
     // ── Chart: Horizontal Bar — Responsabilidad Individual ──────────
     // Filtered by active sprint: show tareasTerminadas for that sprint
@@ -163,7 +174,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     const stackedBarOption = {
         tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
         legend: { data: ["A tiempo", "Con retraso"], top: 0, textStyle: { fontSize: 11 } },
-        grid: { left: "3%", right: "4%", bottom: "8%", top: "36px", containLabel: true },
+        grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
         xAxis: { type: "category", data: sprintNames },
         yAxis: { type: "value" },
         series: [
@@ -190,7 +201,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     const groupedBarOption = {
         tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
         legend: { data: ["Estimado (hrs)", "Real (hrs)"], top: 0, textStyle: { fontSize: 11 } },
-        grid: { left: "3%", right: "4%", bottom: "8%", top: "36px", containLabel: true },
+        grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
         xAxis: { type: "category", data: sprintNames },
         yAxis: { type: "value" },
         series: [
@@ -213,11 +224,11 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     const multilineOption = {
         tooltip: { trigger: "axis" },
         legend: { data: devNames, top: 0, textStyle: { fontSize: 11 } },
-        grid: { left: "8%", right: "8%", bottom: "8%", top: "36px", containLabel: true },
+        grid: { left: "8%", right: "8%", bottom: "8%", top: "56px", containLabel: true },
         xAxis: { type: "category", data: allSprintNames, boundaryGap: ['2%', '8%'] },
         yAxis: { type: "value", name: "Tareas", nameTextStyle: { fontSize: 11 } },
         series: devPerf.map((dev) => ({
-        name: dev.nombre,
+        name: shortName(dev.nombre),
         type: "line",
         smooth: true,
         data: allSprintNames.map(
@@ -229,10 +240,12 @@ export const ProjectDashboard = ({ projectId }: Props) => {
 
     // ── Chart: Stacked Bar — Carga de Trabajo ───────────────────────
     const workloadTotals = allSprintNames.map((sName) =>
-        devPerf.reduce((sum, dev) => {
-            const match = dev.historicoSprints.find((s) => s.sprintNombre === sName);
-            return sum + (match?.horasReales ?? 0);
-        }, 0)
+        parseFloat(
+            devPerf.reduce((sum, dev) => {
+                const match = dev.historicoSprints.find((s) => s.sprintNombre === sName);
+                return sum + (match?.horasReales ?? 0);
+            }, 0).toFixed(1)
+        )
     );
     const workloadOption = {
         tooltip: {
@@ -244,15 +257,15 @@ export const ProjectDashboard = ({ projectId }: Props) => {
                     .filter((p) => p.value > 0)
                     .map((p) => `${p.seriesName}: <b>${p.value} hrs</b>`)
                     .join("<br/>");
-                return `${params[0]?.name}<br/>${rows}<br/><b>Total: ${total} hrs</b>`;
+                return `${params[0]?.name}<br/>${rows}<br/><b>Total: ${total?.toFixed(1)} hrs</b>`;
             },
         },
         legend: { data: devNames, top: 0, textStyle: { fontSize: 11 } },
-        grid: { left: "3%", right: "4%", bottom: "8%", top: "36px", containLabel: true },
+        grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
         xAxis: { type: "category", data: allSprintNames },
         yAxis: { type: "value", name: "hrs", nameTextStyle: { fontSize: 11 } },
         series: devPerf.map((dev, idx) => ({
-            name: dev.nombre,
+            name: shortName(dev.nombre),
             type: "bar",
             stack: "total",
             itemStyle: { color: DEV_COLORS[idx % DEV_COLORS.length] },
@@ -281,11 +294,11 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     const tasksPerDevSprintOption = {
         tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
         legend: { data: devNames, top: 0, textStyle: { fontSize: 11 } },
-        grid: { left: "3%", right: "4%", bottom: "8%", top: "36px", containLabel: true },
+        grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
         xAxis: { type: "category", data: allSprintNames },
         yAxis: { type: "value", name: "Tareas", nameTextStyle: { fontSize: 11 } },
         series: devPerf.map((dev, idx) => ({
-            name: dev.nombre,
+            name: shortName(dev.nombre),
             type: "bar",
             itemStyle: { color: DEV_COLORS[idx % DEV_COLORS.length] },
             label: {
@@ -305,11 +318,11 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     const hrsPerDevSprintOption = {
         tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
         legend: { data: devNames, top: 0, textStyle: { fontSize: 11 } },
-        grid: { left: "3%", right: "4%", bottom: "8%", top: "36px", containLabel: true },
+        grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
         xAxis: { type: "category", data: allSprintNames },
         yAxis: { type: "value", name: "hrs", nameTextStyle: { fontSize: 11 } },
         series: devPerf.map((dev, idx) => ({
-            name: dev.nombre,
+            name: shortName(dev.nombre),
             type: "bar",
             itemStyle: { color: DEV_COLORS[idx % DEV_COLORS.length] },
             label: {
@@ -481,7 +494,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
 
         {/* Row: Tasks por Dev/Sprint + Horas por Dev/Sprint */}
         <div
-            style={{ display: "grid", gridTemplateColumns: "2fr 2fr 2fr", gap: 16, marginBottom: 8 }}
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 8 }}
         >
             <ChartCard title="Tasks Terminadas por Desarrollador / Sprint">
             {devPerf.length > 0 && allSprintNames.length > 0 ? (
