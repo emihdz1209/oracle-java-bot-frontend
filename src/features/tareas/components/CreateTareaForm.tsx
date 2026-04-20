@@ -9,25 +9,27 @@ import {
   CircularProgress,
 } from "@mui/material";
 
-interface Prioridad {
+export interface Prioridad {
   prioridadId: number;
   nombre: string;
 }
 
-interface ProjectOption {
+export interface ProjectOption {
   projectId: string;
   nombre: string;
 }
 
-interface Props {
-  onSubmit: (data: {
-    projectId: string;
-    titulo: string;
-    descripcion: string;
-    fechaLimite: string;
-    prioridadId: number;
-    tiempoEstimado: number | null;
-  }) => void;
+export interface CreateTareaFormData {
+  projectId: string;
+  titulo: string;
+  descripcion: string;
+  fechaLimite: string;
+  prioridadId: number;
+  tiempoEstimado: number | null;
+}
+
+export interface CreateTareaFormProps {
+  onSubmit: (data: CreateTareaFormData) => void;
   isPending: boolean;
   projects: ProjectOption[];
   prioridades: Prioridad[];
@@ -53,7 +55,7 @@ export const CreateTareaForm = ({
   isPending,
   projects,
   prioridades,
-}: Props) => {
+}: CreateTareaFormProps) => {
   const [form, setForm] = useState(() => ({
     ...EMPTY,
     // Pre-select the project when only one is available

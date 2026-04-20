@@ -19,11 +19,15 @@ import {
   useDeleteTarea,
 } from "@/features/tareas/hooks/useTareas";
 import type { CreateTareaRequest, Tarea } from "@/features/tareas/types/tarea";
-import { CreateTareaForm } from "@/features/tareas/components/CreateTareaForm";
+import {
+  CreateTareaModal,
+  type CreateTareaFormData,
+} from "@/features/tareas/components/CreateTareaModal";
 import { TareaList } from "@/features/tareas/components/TareaList";
 import { TareasModal } from "@/features/tareas/components/TareasModal";
 import { NavBar } from "@/shared/pages/NavBar";
-import { AppModal, useAppModal } from "@/shared/components/AppModal";
+import { useAppModal } from "@/shared/components/AppModal";
+import { SidePanelLayout } from "@/shared/components/SidePanelLayout";
 
 const PRIORIDADES = [
   { prioridadId: 1, nombre: "Alta" },
@@ -142,14 +146,7 @@ export const TareasPage = () => {
   const statusMutation = useUpdateTareaStatus(undefined);
   const deleteMutation = useDeleteTarea(undefined);
 
-  const handleCreate = (data: {
-    projectId: string;
-    titulo: string;
-    descripcion: string;
-    fechaLimite: string;
-    prioridadId: number;
-    tiempoEstimado: number | null;
-  }) => {
+  const handleCreate = (data: CreateTareaFormData) => {
     const payload: CreateTareaRequest = {
       titulo: data.titulo,
       descripcion: data.descripcion,
@@ -200,93 +197,94 @@ export const TareasPage = () => {
         </Button>
       </div>
 
-      <div className={`tareas-layout ${isSideModalOpen ? "tareas-layout--with-panel" : ""}`}>
-        <div className="tareas-main">
-          <div className="tareas-board-container">
-            {/* Filters */}
-            <div className="filter-bar">
-              <span className="section-label" style={{ margin: 0 }}>Proyectos</span>
+      <SidePanelLayout
+        isPanelOpen={isSideModalOpen}
+        panel={
+          <TareasModal
+            taskId={selectedTaskId}
+            projectId={selectedTaskProjectId}
+            onClose={handleCloseTaskDetails}
+          />
+        }
+      >
+        <div className="tareas-board-container">
+          {/* Filters */}
+          <div className="filter-bar">
+            <span className="section-label" style={{ margin: 0 }}>Proyectos</span>
 
-              {loadingProjects ? (
-                <CircularProgress size={20} />
-              ) : (
-                <>
-                  <FormControl size="small" style={{ minWidth: 280, maxWidth: 480 }}>
-                    <Select
-                      multiple
-                      value={selectedIds}
-                      onChange={handleChange}
-                      renderValue={(sel) =>
-                        sel.length === 0
-                          ? "Ninguno seleccionado"
-                          : sel.length === allProjects.length
-                          ? "Todos los proyectos"
-                          : sel.map((id) => nameMap[id] ?? id).join(", ")
-                      }
-                      displayEmpty
-                    >
-                      {allProjects.map((p) => (
-                        <MenuItem key={p.projectId} value={p.projectId}>
-                          <Checkbox checked={selectedIds.includes(p.projectId)} size="small" />
-                          <ListItemText primary={p.nombre} />
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={allSelected ? unselectAll : selectAll}
-                    style={{ textTransform: "none", fontSize: "0.75rem" }}
-                    disabled={allProjects.length === 0}
-                  >
-                    {allSelected ? "Desel. todo" : "Sel. todo"}
-                  </Button>
-                </>
-              )}
-
-              {selectedIds.length > 0 && (
-                <span className="filter-count">
-                  {allTareas.length} tarea{allTareas.length !== 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-
-            {/* Kanban */}
-            {loadingTareas ? (
-              <CircularProgress style={{ marginTop: 40 }} />
-            ) : selectedIds.length === 0 ? (
-              <p style={{ color: "var(--text-3)", fontSize: "0.875rem", marginTop: 24 }}>
-                Selecciona al menos un proyecto para ver las tareas.
-              </p>
+            {loadingProjects ? (
+              <CircularProgress size={20} />
             ) : (
-              <TareaList
-                tareas={allTareas}
-                onDelete={handleDelete}
-                onStatusChange={handleStatusChange}
-                onOpenDetails={handleOpenTaskDetails}
-              />
+              <>
+                <FormControl size="small" style={{ minWidth: 280, maxWidth: 480 }}>
+                  <Select
+                    multiple
+                    value={selectedIds}
+                    onChange={handleChange}
+                    renderValue={(sel) =>
+                      sel.length === 0
+                        ? "Ninguno seleccionado"
+                        : sel.length === allProjects.length
+                        ? "Todos los proyectos"
+                        : sel.map((id) => nameMap[id] ?? id).join(", ")
+                    }
+                    displayEmpty
+                  >
+                    {allProjects.map((p) => (
+                      <MenuItem key={p.projectId} value={p.projectId}>
+                        <Checkbox checked={selectedIds.includes(p.projectId)} size="small" />
+                        <ListItemText primary={p.nombre} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={allSelected ? unselectAll : selectAll}
+                  style={{ textTransform: "none", fontSize: "0.75rem" }}
+                  disabled={allProjects.length === 0}
+                >
+                  {allSelected ? "Desel. todo" : "Sel. todo"}
+                </Button>
+              </>
+            )}
+
+            {selectedIds.length > 0 && (
+              <span className="filter-count">
+                {allTareas.length} tarea{allTareas.length !== 1 ? "s" : ""}
+              </span>
             )}
           </div>
-        </div>
 
-        <TareasModal
-          taskId={selectedTaskId}
-          projectId={selectedTaskProjectId}
-          onClose={handleCloseTaskDetails}
-        />
-      </div>
+          {/* Kanban */}
+          {loadingTareas ? (
+            <CircularProgress style={{ marginTop: 40 }} />
+          ) : selectedIds.length === 0 ? (
+            <p style={{ color: "var(--text-3)", fontSize: "0.875rem", marginTop: 24 }}>
+              Selecciona al menos un proyecto para ver las tareas.
+            </p>
+          ) : (
+            <TareaList
+              tareas={allTareas}
+              onDelete={handleDelete}
+              onStatusChange={handleStatusChange}
+              onOpenDetails={handleOpenTaskDetails}
+            />
+          )}
+        </div>
+      </SidePanelLayout>
 
       {/* Create modal */}
-      <AppModal open={createModal.isOpen} onClose={createModal.closeModal} title="Nueva tarea">
-        <CreateTareaForm
-          onSubmit={handleCreate}
-          isPending={createMutation.isPending}
-          projects={selectedProjects}
-          prioridades={PRIORIDADES}
-        />
-      </AppModal>
+      <CreateTareaModal
+        open={createModal.isOpen}
+        onClose={createModal.closeModal}
+        onSubmit={handleCreate}
+        isPending={createMutation.isPending}
+        projects={selectedProjects}
+        prioridades={PRIORIDADES}
+      />
     </div>
   );
 };

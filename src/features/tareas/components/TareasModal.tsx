@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { CircularProgress } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { useProjectSprints } from "@/features/proyectos/hooks/useProyectos";
 import { useTaskPriorities } from "@/features/taskPriorities/taskPriorities/hooks/useTaskPriorities";
 import { useTaskStatuses } from "@/features/taskStatuses/hooks/useTaskStatuses";
@@ -28,6 +27,7 @@ import {
   toApiDateTime,
   toDateTimeLocalValue,
 } from "@/features/tareas/components/tareasModal/tareasModalUtils";
+import { SidePanelShell } from "@/shared/components/SidePanelShell";
 
 interface TareasModalProps {
   taskId: string | null;
@@ -260,74 +260,60 @@ export const TareasModal = ({ taskId, projectId, onClose }: TareasModalProps) =>
   };
 
   return (
-    <aside
-      className={`tareas-side-modal ${isOpen ? "tareas-side-modal--open" : ""}`}
-      aria-hidden={!isOpen}
-      aria-label="Detalle de tarea"
+    <SidePanelShell
+      open={isOpen}
+      onClose={onClose}
+      ariaLabel="Detalle de tarea"
+      headerLabel="Detalle de tarea"
+      title={tareaDetalle ? tareaDetalle.titulo : "Selecciona una tarea"}
     >
-      <div className="tareas-side-modal-inner">
-        <div className="tareas-side-modal-header">
-          <div>
-            <span className="task-detail-label">Detalle de tarea</span>
-            <h3 className="tareas-side-modal-title">
-              {tareaDetalle ? tareaDetalle.titulo : "Selecciona una tarea"}
-            </h3>
-          </div>
-          <button type="button" onClick={onClose} className="app-modal-close-btn" aria-label="Cerrar panel">
-            <CloseIcon />
-          </button>
+      {!isOpen ? (
+        <p className="task-detail-empty">Selecciona una tarea para ver su detalle.</p>
+      ) : detailLoading ? (
+        <div className="task-detail-loading">
+          <CircularProgress size={28} />
         </div>
+      ) : detailError || !tareaDetalle ? (
+        <p className="task-detail-feedback">
+          No se pudieron cargar los detalles de la tarea seleccionada.
+        </p>
+      ) : (
+        <div className="task-detail-content">
+          <TareaEditFormSection
+            form={form}
+            projectId={projectId}
+            sprints={sprints}
+            sprintsLoading={sprintsLoading}
+            prioritiesLoading={prioritiesLoading}
+            statusesLoading={statusesLoading}
+            taskPriorities={taskPriorities}
+            statusOptions={statusOptions}
+            saveError={saveError}
+            saveFeedback={saveFeedback}
+            isSaving={isSaving}
+            fechaCreacion={tareaDetalle.fechaCreacion}
+            fechaFinalizacion={tareaDetalle.fechaFinalizacion}
+            onSubmit={handleSaveChanges}
+            onFieldChange={handleFormValueChange}
+          />
 
-        <div className="tareas-side-modal-body">
-          {!isOpen ? (
-            <p className="task-detail-empty">Selecciona una tarea para ver su detalle.</p>
-          ) : detailLoading ? (
-            <div className="task-detail-loading">
-              <CircularProgress size={28} />
-            </div>
-          ) : detailError || !tareaDetalle ? (
-            <p className="task-detail-feedback">
-              No se pudieron cargar los detalles de la tarea seleccionada.
-            </p>
-          ) : (
-            <div className="task-detail-content">
-              <TareaEditFormSection
-                form={form}
-                projectId={projectId}
-                sprints={sprints}
-                sprintsLoading={sprintsLoading}
-                prioritiesLoading={prioritiesLoading}
-                statusesLoading={statusesLoading}
-                taskPriorities={taskPriorities}
-                statusOptions={statusOptions}
-                saveError={saveError}
-                saveFeedback={saveFeedback}
-                isSaving={isSaving}
-                fechaCreacion={tareaDetalle.fechaCreacion}
-                fechaFinalizacion={tareaDetalle.fechaFinalizacion}
-                onSubmit={handleSaveChanges}
-                onFieldChange={handleFormValueChange}
-              />
-
-              <TaskAssigneesSection
-                availableUsers={availableUsers}
-                selectedUserId={selectedUserId}
-                assignError={assignError}
-                assigneesLoading={assigneesLoading}
-                assigneesError={assigneesError}
-                usersLoading={usersLoading}
-                isAssigning={assignTaskUserMutation.isPending}
-                isRemoving={removeTaskUserMutation.isPending}
-                removingUserId={removingUserId}
-                assignedUsers={assignedUsers}
-                onAssignUser={handleAssignUser}
-                onSelectUser={setSelectedUserId}
-                onRemoveUser={handleRemoveUser}
-              />
-            </div>
-          )}
+          <TaskAssigneesSection
+            availableUsers={availableUsers}
+            selectedUserId={selectedUserId}
+            assignError={assignError}
+            assigneesLoading={assigneesLoading}
+            assigneesError={assigneesError}
+            usersLoading={usersLoading}
+            isAssigning={assignTaskUserMutation.isPending}
+            isRemoving={removeTaskUserMutation.isPending}
+            removingUserId={removingUserId}
+            assignedUsers={assignedUsers}
+            onAssignUser={handleAssignUser}
+            onSelectUser={setSelectedUserId}
+            onRemoveUser={handleRemoveUser}
+          />
         </div>
-      </div>
-    </aside>
+      )}
+    </SidePanelShell>
   );
 };

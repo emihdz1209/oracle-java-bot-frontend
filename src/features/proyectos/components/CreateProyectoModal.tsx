@@ -1,5 +1,6 @@
 import { TextField, Button, CircularProgress } from "@mui/material";
 import { AppModal } from "@/shared/components/AppModal";
+import type { CreateModalBaseProps } from "@/shared/components/modalProps";
 
 export interface ProyectoCreateFormState {
   nombre: string;
@@ -8,13 +9,10 @@ export interface ProyectoCreateFormState {
   fechaFin: string;
 }
 
-interface CreateProyectoModalProps {
-  open: boolean;
-  onClose: () => void;
+export interface CreateProyectoModalProps extends CreateModalBaseProps {
   form: ProyectoCreateFormState;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (event: React.FormEvent) => void;
-  isPending: boolean;
 }
 
 export const CreateProyectoModal = ({

@@ -19,6 +19,7 @@ import { ProyectoSideModal } from "@/features/proyectos/components/ProyectoSideM
 import { NavBar } from "@/shared/pages/NavBar";
 import { ProjectDashboard } from "@/features/proyectos/components/ProjectDashboard";
 import { useAppModal } from "@/shared/components/AppModal";
+import { SidePanelLayout } from "@/shared/components/SidePanelLayout";
 
 // ── Persistence helpers ──────────────────────────────────────────────────────
 
@@ -156,65 +157,65 @@ export const ProyectosPage = () => {
       </div>
 
       {/* Main layout with side modal */}
-      <div className={`tareas-layout ${isSideModalOpen ? "tareas-layout--with-panel" : ""}`}>
-        <div className="tareas-main">
-          <ProyectosFilters
-            selectedTeamId={selectedTeamId}
-            selectedProjectId={selectedProjectId}
-            equipos={equipos}
-            proyectos={proyectos}
-            onTeamChange={handleTeamChange}
-            onProjectChange={setSelectedProjectId}
-          />
-
-          <ProyectosTable
-            isLoading={loadingEquipos || loadingProyectos}
-            selectedTeamId={selectedTeamId}
-            selectedProjectId={selectedProjectId}
-            detailProjectId={detailProject?.projectId || null}
-            proyectos={proyectos}
-            onDetailProjectChange={setDetailProject}
-            onDashboardProjectChange={(projectId) => {
-              setSelectedProjectId(projectId === selectedProjectId ? "" : projectId);
+      <SidePanelLayout
+        isPanelOpen={isSideModalOpen}
+        panel={
+          <ProyectoSideModal
+            project={detailProject}
+            teamId={selectedTeamId}
+            onClose={() => setDetailProject(null)}
+            onProjectDeleted={(deletedId) => {
+              if (deletedId === selectedProjectId) {
+                setSelectedProjectId("");
+              }
+              setDetailProject(null);
             }}
           />
+        }
+      >
+        <ProyectosFilters
+          selectedTeamId={selectedTeamId}
+          selectedProjectId={selectedProjectId}
+          equipos={equipos}
+          proyectos={proyectos}
+          onTeamChange={handleTeamChange}
+          onProjectChange={setSelectedProjectId}
+        />
 
-          {/* Dashboard section */}
-          {selectedProjectId && selectedProject && (
-            <div style={{ width: "100%" }}>
-              <div className="divider" />
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-                <span className="section-label" style={{ margin: 0 }}>
-                  Dashboard
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.82rem",
-                    fontWeight: 600,
-                    color: "var(--text-2)",
-                  }}
-                >
-                  {selectedProject.nombre}
-                </span>
-              </div>
-              <ProjectDashboard projectId={selectedProjectId} />
-            </div>
-          )}
-        </div>
-
-        {/* Side modal */}
-        <ProyectoSideModal
-          project={detailProject}
-          teamId={selectedTeamId}
-          onClose={() => setDetailProject(null)}
-          onProjectDeleted={(deletedId) => {
-            if (deletedId === selectedProjectId) {
-              setSelectedProjectId("");
-            }
-            setDetailProject(null);
+        <ProyectosTable
+          isLoading={loadingEquipos || loadingProyectos}
+          selectedTeamId={selectedTeamId}
+          selectedProjectId={selectedProjectId}
+          detailProjectId={detailProject?.projectId || null}
+          proyectos={proyectos}
+          onDetailProjectChange={setDetailProject}
+          onDashboardProjectChange={(projectId) => {
+            setSelectedProjectId(projectId === selectedProjectId ? "" : projectId);
           }}
         />
-      </div>
+
+        {/* Dashboard section */}
+        {selectedProjectId && selectedProject && (
+          <div style={{ width: "100%" }}>
+            <div className="divider" />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+              <span className="section-label" style={{ margin: 0 }}>
+                Dashboard
+              </span>
+              <span
+                style={{
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  color: "var(--text-2)",
+                }}
+              >
+                {selectedProject.nombre}
+              </span>
+            </div>
+            <ProjectDashboard projectId={selectedProjectId} />
+          </div>
+        )}
+      </SidePanelLayout>
 
       {/* Create project modal */}
       <CreateProyectoModal
