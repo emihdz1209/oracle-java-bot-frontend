@@ -23,7 +23,7 @@ import { CreateTareaForm } from "@/features/tareas/components/CreateTareaForm";
 import { TareaList } from "@/features/tareas/components/TareaList";
 import { TareasModal } from "@/features/tareas/components/TareasModal";
 import { NavBar } from "@/shared/pages/NavBar";
-import { AppModal } from "@/shared/components/AppModal";
+import { AppModal, useAppModal } from "@/shared/components/AppModal";
 
 const PRIORIDADES = [
   { prioridadId: 1, nombre: "Alta" },
@@ -40,8 +40,8 @@ export const TareasPage = () => {
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const createModal = useAppModal();
 
   // Select all projects as soon as they load
   useEffect(() => {
@@ -98,7 +98,7 @@ export const TareasPage = () => {
     };
     createMutation.mutate(
       { projectId: data.projectId, data: payload },
-      { onSuccess: () => setCreateModalOpen(false) }
+      { onSuccess: createModal.closeModal }
     );
   };
 
@@ -132,7 +132,7 @@ export const TareasPage = () => {
         <Button
           className="AddButton"
           startIcon={<AddIcon />}
-          onClick={() => setCreateModalOpen(true)}
+          onClick={createModal.openModal}
           disabled={selectedIds.length === 0}
         >
           Nueva tarea
@@ -218,7 +218,7 @@ export const TareasPage = () => {
       </div>
 
       {/* Create modal */}
-      <AppModal open={createModalOpen} onClose={() => setCreateModalOpen(false)} title="Nueva tarea">
+      <AppModal open={createModal.isOpen} onClose={createModal.closeModal} title="Nueva tarea">
         <CreateTareaForm
           onSubmit={handleCreate}
           isPending={createMutation.isPending}

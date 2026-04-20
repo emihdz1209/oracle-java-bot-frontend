@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
@@ -9,6 +9,25 @@ interface Props {
   children: React.ReactNode;
 }
 
+export const useAppModal = (initialOpen = false) => {
+  const [isOpen, setIsOpen] = useState(initialOpen);
+
+  const openModal = useCallback(() => {
+    setIsOpen(true);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  return {
+    isOpen,
+    setIsOpen,
+    openModal,
+    closeModal,
+  };
+};
+
 export const AppModal = ({ open, onClose, title, children }: Props) => {
   return (
     <Dialog
@@ -16,14 +35,16 @@ export const AppModal = ({ open, onClose, title, children }: Props) => {
       onClose={onClose}
       fullWidth
       maxWidth="sm"
-      PaperProps={{
-        className: "app-modal-paper",
-        sx: {
-          background: "#FFFFFF !important",
-          color: "#18181B !important",
-          border: "1px solid #E4E4E7 !important",
-          borderRadius: "14px !important",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.08) !important",
+      slotProps={{
+        paper: {
+          className: "app-modal-paper",
+          sx: {
+            background: "#FFFFFF !important",
+            color: "#18181B !important",
+            border: "1px solid #E4E4E7 !important",
+            borderRadius: "14px !important",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08) !important",
+          },
         },
       }}
     >
@@ -35,7 +56,9 @@ export const AppModal = ({ open, onClose, title, children }: Props) => {
       </DialogTitle>
 
       <DialogContent className="app-modal-content">
-        {children}
+        <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+          {children}
+        </div>
       </DialogContent>
 
       <DialogActions className="app-modal-actions">

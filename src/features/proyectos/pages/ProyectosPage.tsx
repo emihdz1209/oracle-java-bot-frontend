@@ -18,6 +18,7 @@ import { ProyectosTable } from "@/features/proyectos/components/ProyectosTable";
 import { ProyectoSideModal } from "@/features/proyectos/components/ProyectoSideModal";
 import { NavBar } from "@/shared/pages/NavBar";
 import { ProjectDashboard } from "@/features/proyectos/components/ProjectDashboard";
+import { useAppModal } from "@/shared/components/AppModal";
 
 // ── Persistence helpers ──────────────────────────────────────────────────────
 
@@ -62,9 +63,9 @@ export const ProyectosPage = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     () => readStoredValue(PROJECT_STORAGE_KEY)
   );
-  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [detailProject, setDetailProject] = useState<Proyecto | null>(null);
   const [form, setForm] = useState(EMPTY);
+  const createModal = useAppModal();
 
   const { data: proyectos, isLoading: loadingProyectos } = useProyectos(
     selectedTeamId || undefined
@@ -126,7 +127,7 @@ export const ProyectosPage = () => {
       {
         onSuccess: () => {
           setForm(EMPTY);
-          setCreateModalOpen(false);
+          createModal.closeModal();
         },
       }
     );
@@ -147,7 +148,7 @@ export const ProyectosPage = () => {
         <Button
           className="AddButton"
           startIcon={<AddIcon />}
-          onClick={() => setCreateModalOpen(true)}
+          onClick={createModal.openModal}
           disabled={!selectedTeamId}
         >
           Nuevo proyecto
@@ -217,8 +218,8 @@ export const ProyectosPage = () => {
 
       {/* Create project modal */}
       <CreateProyectoModal
-        open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
+        open={createModal.isOpen}
+        onClose={createModal.closeModal}
         form={form}
         onChange={handleChange}
         onSubmit={handleSubmit}
