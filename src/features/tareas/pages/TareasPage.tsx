@@ -75,6 +75,7 @@ export const TareasPage = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
   const createModal = useAppModal();
 
   useEffect(() => {
@@ -142,6 +143,16 @@ export const TareasPage = () => {
   const statusMutation = useUpdateTareaStatus(undefined);
   const deleteMutation = useDeleteTarea(undefined);
 
+  const handleOpenCreateModal = () => {
+    setCreateError(null);
+    createModal.openModal();
+  };
+
+  const handleCloseCreateModal = () => {
+    setCreateError(null);
+    createModal.closeModal();
+  };
+
   const handleCreate = (data: {
     projectId: string;
     titulo: string;
@@ -157,9 +168,20 @@ export const TareasPage = () => {
       prioridadId: data.prioridadId,
       ...(data.tiempoEstimado !== null && { tiempoEstimado: data.tiempoEstimado }),
     };
+
+    setCreateError(null);
+
     createMutation.mutate(
       { projectId: data.projectId, data: payload },
-      { onSuccess: createModal.closeModal }
+      {
+        onSuccess: () => {
+          setCreateError(null);
+          createModal.closeModal();
+        },
+        onError: () => {
+          setCreateError("No se pudo crear la tarea. Verifica los datos e intenta nuevamente.");
+        },
+      }
     );
   };
 
@@ -193,7 +215,7 @@ export const TareasPage = () => {
         <Button
           className="AddButton"
           startIcon={<AddIcon />}
-          onClick={createModal.openModal}
+          onClick={handleOpenCreateModal}
           disabled={selectedIds.length === 0}
         >
           Nueva tarea
@@ -279,12 +301,14 @@ export const TareasPage = () => {
       </div>
 
       {/* Create modal */}
-      <AppModal open={createModal.isOpen} onClose={createModal.closeModal} title="Nueva tarea">
+      <AppModal open={createModal.isOpen} onClose={handleCloseCreateModal} title="Nueva tarea">
         <CreateTareaForm
           onSubmit={handleCreate}
           isPending={createMutation.isPending}
           projects={selectedProjects}
           prioridades={PRIORIDADES}
+          submitError={createError}
+          onClearSubmitError={() => setCreateError(null)}
         />
       </AppModal>
     </div>
