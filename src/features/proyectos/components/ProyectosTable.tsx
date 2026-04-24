@@ -1,11 +1,16 @@
 import { CircularProgress } from "@mui/material";
 import type { Proyecto } from "@/features/proyectos/types/proyecto";
+import styles from "@/features/proyectos/styles/ProyectosTable.module.css";
 
 const fmtDate = (value: string | null) =>
   value ? new Date(value).toLocaleDateString("es-MX") : "—";
 
-const progressColor = (percentage: number) =>
-  percentage >= 75 ? "#16A34A" : percentage >= 40 ? "#2563EB" : "#D97706";
+const progressToneClass = (percentage: number) =>
+  percentage >= 75
+    ? styles.progressHigh
+    : percentage >= 40
+      ? styles.progressMedium
+      : styles.progressLow;
 
 interface ProyectosTableProps {
   isLoading: boolean;
@@ -27,7 +32,7 @@ export const ProyectosTable = ({
   onDashboardProjectChange,
 }: ProyectosTableProps) => {
   return (
-    <div style={{ width: "100%" }}>
+    <div className={styles.tableContainer}>
       <span className="section-label">
         Proyectos registrados · {(proyectos || []).length}
       </span>
@@ -35,7 +40,7 @@ export const ProyectosTable = ({
       {isLoading ? (
         <CircularProgress />
       ) : !selectedTeamId ? (
-        <p style={{ color: "var(--text-3)", fontSize: "0.875rem", marginTop: 24 }}>
+        <p className={styles.emptyState}>
           Selecciona un equipo para ver sus proyectos.
         </p>
       ) : (
@@ -57,25 +62,13 @@ export const ProyectosTable = ({
               const isDetailOpen = detailProjectId === proyecto.projectId;
 
               return (
-                <tr
-                  key={proyecto.projectId}
-                  style={isActive ? { background: "var(--accent-subtle)" } : undefined}
-                >
+                <tr key={proyecto.projectId} className={isActive ? styles.activeRow : undefined}>
                   <td className="cell-primary">
                     <button
                       onClick={() => onDetailProjectChange(isDetailOpen ? null : proyecto)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        padding: 0,
-                        cursor: "pointer",
-                        fontWeight: 600,
-                        color: isDetailOpen ? "var(--accent)" : "var(--text-1)",
-                        fontSize: "inherit",
-                        textDecoration: "underline",
-                        textDecorationStyle: "dotted",
-                        textUnderlineOffset: 3,
-                      }}
+                      className={`${styles.detailButton} ${
+                        isDetailOpen ? styles.detailButtonActive : ""
+                      }`}
                     >
                       {proyecto.nombre}
                     </button>
@@ -83,12 +76,11 @@ export const ProyectosTable = ({
                   <td>{proyecto.descripcion || "—"}</td>
                   <td>
                     <div className="progress-wrap">
-                      <div className="progress-track">
-                        <div
-                          className="progress-fill"
-                          style={{ width: `${progress}%`, background: progressColor(progress) }}
-                        />
-                      </div>
+                      <progress
+                        className={`${styles.progressValue} ${progressToneClass(progress)}`}
+                        value={progress}
+                        max={100}
+                      />
                       <span className="progress-label">{progress}%</span>
                     </div>
                   </td>
@@ -97,16 +89,9 @@ export const ProyectosTable = ({
                   <td>
                     <button
                       onClick={() => onDashboardProjectChange(proyecto.projectId)}
-                      style={{
-                        fontSize: "0.75rem",
-                        padding: "4px 10px",
-                        border: `1px solid ${isActive ? "var(--accent)" : "var(--border)"}`,
-                        borderRadius: "var(--r-sm)",
-                        background: isActive ? "var(--accent-subtle)" : "transparent",
-                        color: isActive ? "var(--accent)" : "var(--text-2)",
-                        cursor: "pointer",
-                        fontWeight: isActive ? 600 : 400,
-                      }}
+                      className={`${styles.dashboardButton} ${
+                        isActive ? styles.dashboardButtonActive : ""
+                      }`}
                     >
                       {isActive ? "Cerrar" : "Ver"}
                     </button>

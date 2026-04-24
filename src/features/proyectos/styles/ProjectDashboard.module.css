@@ -1,0 +1,217 @@
+.loadingState {
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+}
+
+.root {
+  width: 100%;
+}
+
+.sprintSelector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.inlineSectionLabel {
+  margin: 0 !important;
+}
+
+.sprintControl {
+  min-width: 180px;
+}
+
+.noSprintsMessage {
+  color: var(--text-3);
+  font-size: 0.875rem;
+  margin-bottom: 16px;
+}
+
+.kpiGridPrimary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.kpiGridSecondary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.chartGridTwo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.chartGridThree {
+  display: grid;
+  grid-template-columns: 2fr 2fr 2fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.chartGridBottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.kpiCard {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  border-top-width: 3px;
+  border-top-style: solid;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--shadow-sm);
+}
+
+.kpiLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+}
+
+.kpiValue {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.kpiBlue {
+  border-top-color: #2563eb;
+}
+
+.kpiBlue .kpiValue {
+  color: #2563eb;
+}
+
+.kpiGreen {
+  border-top-color: #16a34a;
+}
+
+.kpiGreen .kpiValue {
+  color: #16a34a;
+}
+
+.kpiOrange {
+  border-top-color: #d97706;
+}
+
+.kpiOrange .kpiValue {
+  color: #d97706;
+}
+
+.kpiPurple {
+  border-top-color: #7c3aed;
+}
+
+.kpiPurple .kpiValue {
+  color: #7c3aed;
+}
+
+.kpiRed {
+  border-top-color: #dc2626;
+}
+
+.kpiRed .kpiValue {
+  color: #dc2626;
+}
+
+.kpiCyan {
+  border-top-color: #0891b2;
+}
+
+.kpiCyan .kpiValue {
+  color: #0891b2;
+}
+
+.kpiOrangeAlt {
+  border-top-color: #ea580c;
+}
+
+.kpiOrangeAlt .kpiValue {
+  color: #ea580c;
+}
+
+.kpiOlive {
+  border-top-color: #65a30d;
+}
+
+.kpiOlive .kpiValue {
+  color: #65a30d;
+}
+
+.chartCard {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.chartTitle {
+  font-size: 0.78rem;
+  margin: 0 0 12px;
+}
+
+.chart180 {
+  height: 180px;
+}
+
+.chart210 {
+  height: 210px;
+}
+
+.chart260 {
+  height: 260px;
+}
+
+.emptyState {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  font-size: 0.82rem;
+}
+
+@media (max-width: 1280px) {
+  .kpiGridPrimary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .kpiGridSecondary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .chartGridThree {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 960px) {
+  .sprintSelector {
+    flex-wrap: wrap;
+  }
+
+  .kpiGridPrimary,
+  .kpiGridSecondary,
+  .chartGridTwo,
+  .chartGridBottom {
+    grid-template-columns: 1fr;
+  }
+}

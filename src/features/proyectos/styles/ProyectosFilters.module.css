@@ -1,0 +1,20 @@
+.inlineLabel {
+  margin: 0 !important;
+}
+
+.projectLabel {
+  margin-left: 16px !important;
+}
+
+.teamControl {
+  min-width: 200px;
+}
+
+.projectControl {
+  min-width: 220px;
+}
+
+.placeholder {
+  font-style: normal;
+  color: var(--text-3);
+}

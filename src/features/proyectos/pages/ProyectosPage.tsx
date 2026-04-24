@@ -1,13 +1,12 @@
 /// src/features/proyectos/pages/ProyectosPage.tsx
 
 import { useEffect, useState } from "react";
-import { Button } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import { useEquipos } from "@/features/equipos/hooks/useEquipos";
 import {
   useProyectos,
   useCreateProyecto,
 } from "@/features/proyectos/hooks/useProyectos";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import type { Proyecto } from "@/features/proyectos/types/proyecto";
 import {
   CreateProyectoModal,
@@ -16,8 +15,9 @@ import {
 import { ProyectosFilters } from "@/features/proyectos/components/ProyectosFilters";
 import { ProyectosTable } from "@/features/proyectos/components/ProyectosTable";
 import { ProyectoSideModal } from "@/features/proyectos/components/ProyectoSideModal";
+import { ProyectosPageHeader } from "@/features/proyectos/components/ProyectosPageHeader";
+import { ProyectosDashboardSection } from "@/features/proyectos/components/ProyectosDashboardSection";
 import { NavBar } from "@/shared/pages/NavBar";
-import { ProjectDashboard } from "@/features/proyectos/components/ProjectDashboard";
 import { useAppModal } from "@/shared/components/AppModal";
 
 // ── Persistence helpers ──────────────────────────────────────────────────────
@@ -55,7 +55,9 @@ const EMPTY: ProyectoCreateFormState = {
 // ── ProyectosPage ─────────────────────────────────────────────────────────────
 
 export const ProyectosPage = () => {
+  const { auth } = useAuth();
   const { data: equipos, isLoading: loadingEquipos } = useEquipos();
+  const canManageProjects = auth.user?.role === "MANAGER";
 
   const [selectedTeamId, setSelectedTeamId] = useState<string>(
     () => readStoredValue(TEAM_STORAGE_KEY)
@@ -117,7 +119,7 @@ export const ProyectosPage = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.nombre.trim() || !selectedTeamId) return;
+    if (!canManageProjects || !form.nombre.trim() || !selectedTeamId) return;
     createMutation.mutate(
       {
         ...form,
@@ -133,6 +135,14 @@ export const ProyectosPage = () => {
     );
   };
 
+  const handleOpenCreateModal = () => {
+    if (!canManageProjects) {
+      return;
+    }
+
+    createModal.openModal();
+  };
+
   const selectedProject = proyectos?.find((p) => p.projectId === selectedProjectId);
 
   // ── Render ────────────────────────────────────────────────────────
@@ -140,20 +150,10 @@ export const ProyectosPage = () => {
     <div className="App">
       <NavBar />
 
-      <div className="page-header">
-        <div>
-          <h2>Proyectos</h2>
-          <p className="page-subtitle">Gestión de proyectos y dashboard de KPIs</p>
-        </div>
-        <Button
-          className="AddButton"
-          startIcon={<AddIcon />}
-          onClick={createModal.openModal}
-          disabled={!selectedTeamId}
-        >
-          Nuevo proyecto
-        </Button>
-      </div>
+      <ProyectosPageHeader
+        onCreateProject={handleOpenCreateModal}
+        isCreateDisabled={!selectedTeamId || !canManageProjects}
+      />
 
       {/* Main layout with side modal */}
       <div className={`tareas-layout ${isSideModalOpen ? "tareas-layout--with-panel" : ""}`}>
@@ -181,24 +181,10 @@ export const ProyectosPage = () => {
 
           {/* Dashboard section */}
           {selectedProjectId && selectedProject && (
-            <div style={{ width: "100%" }}>
-              <div className="divider" />
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-                <span className="section-label" style={{ margin: 0 }}>
-                  Dashboard
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.82rem",
-                    fontWeight: 600,
-                    color: "var(--text-2)",
-                  }}
-                >
-                  {selectedProject.nombre}
-                </span>
-              </div>
-              <ProjectDashboard projectId={selectedProjectId} />
-            </div>
+            <ProyectosDashboardSection
+              projectId={selectedProjectId}
+              projectName={selectedProject.nombre}
+            />
           )}
         </div>
 
@@ -206,6 +192,7 @@ export const ProyectosPage = () => {
         <ProyectoSideModal
           project={detailProject}
           teamId={selectedTeamId}
+          canManageProjects={canManageProjects}
           onClose={() => setDetailProject(null)}
           onProjectDeleted={(deletedId) => {
             if (deletedId === selectedProjectId) {
@@ -218,7 +205,7 @@ export const ProyectosPage = () => {
 
       {/* Create project modal */}
       <CreateProyectoModal
-        open={createModal.isOpen}
+        open={canManageProjects && createModal.isOpen}
         onClose={createModal.closeModal}
         form={form}
         onChange={handleChange}

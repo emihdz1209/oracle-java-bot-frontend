@@ -10,6 +10,7 @@ import {
     useProjectProgress,
     useDeveloperPerformance,
 } from "@/features/proyectos/hooks/useProyectos";
+import styles from "@/features/proyectos/styles/ProjectDashboard.module.css";
 
 interface Props {
     projectId: string;
@@ -46,7 +47,6 @@ const DEV_COLORS = [
     "#dc2626", "#0891b2", "#ea580c", "#65a30d",
 ];
 
-// Agrega DESPUÉS de DEV_COLORS:
 const shortName = (fullName: string): string => {
     const parts = fullName.trim().split(/\s+/);
     if (parts.length < 2) return fullName;
@@ -341,21 +341,21 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     // ── Render ───────────────────────────────────────────────────────
     if (loadingSprints || loadingDevs) {
         return (
-        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
-            <CircularProgress />
-        </div>
+            <div className={styles.loadingState}>
+                <CircularProgress />
+            </div>
         );
     }
 
     return (
-        <div style={{ width: "100%" }}>
+        <div className={styles.root}>
         {/* Sprint selector */}
         {sprints.length > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-            <span className="section-label" style={{ margin: 0 }}>
+            <div className={styles.sprintSelector}>
+            <span className={`section-label ${styles.inlineSectionLabel}`}>
                 Sprint activo
             </span>
-            <FormControl size="small" style={{ minWidth: 180 }}>
+            <FormControl size="small" className={styles.sprintControl}>
                 <Select
                 value={effectiveSprintId}
                 onChange={(e) => setSelectedSprintId(e.target.value)}
@@ -371,81 +371,65 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         )}
 
         {sprints.length === 0 && (
-            <p style={{ color: "var(--text-3)", fontSize: "0.875rem", marginBottom: 16 }}>
+            <p className={styles.noSprintsMessage}>
             Este proyecto aún no tiene sprints. Crea uno para ver KPIs de sprint.
             </p>
         )}
 
         {/* KPI Row 1: project-level */}
-        <div
-            style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(5, 1fr)",
-            gap: 12,
-            marginBottom: 12,
-            }}
-        >
-            <KpiCard label="Progreso General" value={`${Math.round(progressValue)}%`} color="#2563eb" />
+        <div className={styles.kpiGridPrimary}>
+            <KpiCard label="Progreso General" value={`${Math.round(progressValue)}%`} tone="blue" />
             <KpiCard
             label="Sprint Completion"
             value={completionRate !== null ? `${completionRate}%` : "—"}
-            color="#16a34a"
+            tone="green"
             />
             <KpiCard
             label="Entrega a Tiempo"
             value={onTimeRate !== null ? `${onTimeRate}%` : "—"}
-            color="#d97706"
+            tone="orange"
             />
             <KpiCard
             label="Precisión Estimación"
             value={estimationAccuracy !== null ? String(estimationAccuracy) : "—"}
-            color="#7c3aed"
+            tone="purple"
             />
             <KpiCard
             label="Tareas en Sprint"
             value={selectedKpis ? String(selectedKpis.totalTareas) : "—"}
-            color="#dc2626"
+            tone="red"
             />
         </div>
 
         {/* KPI Row 2: sprint-scoped detail */}
-        <div
-            style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 12,
-            marginBottom: 24,
-            }}
-        >
+        <div className={styles.kpiGridSecondary}>
             <KpiCard
             label="# Tasks Completadas"
             value={totalTasksSprint !== null ? String(totalTasksSprint) : "—"}
-            color="#0891b2"
+            tone="cyan"
             />
             <KpiCard
             label="# Horas Reales"
             value={totalRealHrsSprint !== null ? `${totalRealHrsSprint} hrs` : "—"}
-            color="#ea580c"
+            tone="orangeAlt"
             />
             <KpiCard
             label="Promedio Tasks / Dev"
             value={avgTasksPerDev !== null ? String(avgTasksPerDev) : "—"}
-            color="#65a30d"
+            tone="olive"
             />
             <KpiCard
             label="Promedio Horas / Dev"
             value={avgHrsPerDev !== null ? `${avgHrsPerDev} hrs` : "—"}
-            color="#7c3aed"
+            tone="purple"
             />
         </div>
 
         {/* Row: Entrega a Tiempo + Estimación vs Real */}
-        <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}
-        >
+        <div className={styles.chartGridTwo}>
             <ChartCard title="Entrega a Tiempo por Sprint">
             {sprints.length > 0 ? (
-                <ReactECharts option={stackedBarOption} style={{ height: 180 }} />
+                <ReactECharts option={stackedBarOption} className={styles.chart180} />
             ) : (
                 <EmptyState />
             )}
@@ -453,7 +437,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
 
             <ChartCard title="Estimación vs Real (hrs)">
             {sprints.length > 0 ? (
-                <ReactECharts option={groupedBarOption} style={{ height: 180 }} />
+                <ReactECharts option={groupedBarOption} className={styles.chart180} />
             ) : (
                 <EmptyState />
             )}
@@ -461,15 +445,10 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         </div>
 
         {/* Row: Responsabilidad Individual + Productividad Histórica + Carga de Trabajo */}
-        <div
-            style={{ display: "grid", gridTemplateColumns: "2fr 2fr 2fr", gap: 16, marginBottom: 16 }}
-        >
+        <div className={styles.chartGridThree}>
             <ChartCard title="Responsabilidad Individual (sprint activo)">
             {devPerf.length > 0 ? (
-                <ReactECharts
-                option={hbarOption}
-                style={{ height: 210 }}
-                />
+                <ReactECharts option={hbarOption} className={styles.chart210} />
             ) : (
                 <EmptyState />
             )}
@@ -477,7 +456,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
 
             <ChartCard title="Productividad Histórica por Desarrollador">
             {devPerf.length > 0 && allSprintNames.length > 0 ? (
-                <ReactECharts option={multilineOption} style={{ height: 210 }} />
+                <ReactECharts option={multilineOption} className={styles.chart210} />
             ) : (
                 <EmptyState />
             )}
@@ -485,7 +464,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
 
             <ChartCard title="Carga de Trabajo (hrs por sprint)">
             {devPerf.length > 0 && allSprintNames.length > 0 ? (
-                <ReactECharts option={workloadOption} style={{ height: 210 }} />
+                <ReactECharts option={workloadOption} className={styles.chart210} />
             ) : (
                 <EmptyState />
             )}
@@ -493,12 +472,10 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         </div>
 
         {/* Row: Tasks por Dev/Sprint + Horas por Dev/Sprint */}
-        <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 8 }}
-        >
+        <div className={styles.chartGridBottom}>
             <ChartCard title="Tasks Terminadas por Desarrollador / Sprint">
             {devPerf.length > 0 && allSprintNames.length > 0 ? (
-                <ReactECharts option={tasksPerDevSprintOption} style={{ height: 260 }} />
+                <ReactECharts option={tasksPerDevSprintOption} className={styles.chart260} />
             ) : (
                 <EmptyState />
             )}
@@ -506,7 +483,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
 
             <ChartCard title="Horas Reales por Desarrollador / Sprint">
             {devPerf.length > 0 && allSprintNames.length > 0 ? (
-                <ReactECharts option={hrsPerDevSprintOption} style={{ height: 260 }} />
+                <ReactECharts option={hrsPerDevSprintOption} className={styles.chart260} />
             ) : (
                 <EmptyState />
             )}
@@ -518,71 +495,51 @@ export const ProjectDashboard = ({ projectId }: Props) => {
 
 // ── Helper sub-components ────────────────────────────────────────────────────
 
+type KpiTone =
+    | "blue"
+    | "green"
+    | "orange"
+    | "purple"
+    | "red"
+    | "cyan"
+    | "orangeAlt"
+    | "olive";
+
+const KPI_TONE_CLASS: Record<KpiTone, string> = {
+    blue: styles.kpiBlue,
+    green: styles.kpiGreen,
+    orange: styles.kpiOrange,
+    purple: styles.kpiPurple,
+    red: styles.kpiRed,
+    cyan: styles.kpiCyan,
+    orangeAlt: styles.kpiOrangeAlt,
+    olive: styles.kpiOlive,
+};
+
 const KpiCard = ({
     label,
     value,
-    color,
+    tone,
 }: {
     label: string;
     value: string;
-    color: string;
+    tone: KpiTone;
 }) => (
-    <div
-        style={{
-        background: "#fff",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-md)",
-        borderTop: `3px solid ${color}`,
-        padding: "14px 16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-        boxShadow: "var(--shadow-sm)",
-        }}
-    >
-        <span
-        style={{
-            fontSize: "0.65rem",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            color: "var(--text-3)",
-        }}
-        >
-        {label}
-        </span>
-        <span style={{ fontSize: "1.5rem", fontWeight: 800, color, lineHeight: 1.1 }}>
-        {value}
-        </span>
+    <div className={`${styles.kpiCard} ${KPI_TONE_CLASS[tone]}`}>
+        <span className={styles.kpiLabel}>{label}</span>
+        <span className={styles.kpiValue}>{value}</span>
     </div>
 );
 
 const ChartCard = ({ title, children }: { title: string; children: ReactNode }) => (
-    <div
-        style={{
-        background: "#fff",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-md)",
-        padding: "16px",
-        boxShadow: "var(--shadow-sm)",
-        }}
-    >
-        <h3 style={{ fontSize: "0.78rem", marginBottom: 12 }}>{title}</h3>
+    <div className={styles.chartCard}>
+        <h3 className={styles.chartTitle}>{title}</h3>
         {children}
     </div>
 );
 
 const EmptyState = () => (
-    <div
-        style={{
-        height: 200,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "var(--text-3)",
-        fontSize: "0.82rem",
-        }}
-    >
+    <div className={styles.emptyState}>
         Sin datos suficientes
     </div>
 );

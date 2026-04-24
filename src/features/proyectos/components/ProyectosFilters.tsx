@@ -1,6 +1,7 @@
 import { FormControl, MenuItem, Select } from "@mui/material";
 import type { Equipo } from "@/features/equipos/types/equipo";
 import type { Proyecto } from "@/features/proyectos/types/proyecto";
+import styles from "@/features/proyectos/styles/ProyectosFilters.module.css";
 
 interface ProyectosFiltersProps {
   selectedTeamId: string;
@@ -21,17 +22,17 @@ export const ProyectosFilters = ({
 }: ProyectosFiltersProps) => {
   return (
     <div className="filter-bar">
-      <span className="section-label" style={{ margin: 0 }}>
+      <span className={`section-label ${styles.inlineLabel}`}>
         Filtrar por equipo
       </span>
-      <FormControl size="small" style={{ minWidth: 200 }}>
+      <FormControl size="small" className={styles.teamControl}>
         <Select
           value={selectedTeamId}
           displayEmpty
           onChange={(event) => onTeamChange(event.target.value as string)}
         >
           <MenuItem value="">
-            <em style={{ fontStyle: "normal", color: "#A1A1AA" }}>Seleccionar equipo</em>
+            <em className={styles.placeholder}>Seleccionar equipo</em>
           </MenuItem>
           {(equipos || []).map((equipo) => (
             <MenuItem key={equipo.teamId} value={equipo.teamId}>
@@ -43,17 +44,17 @@ export const ProyectosFilters = ({
 
       {selectedTeamId && (
         <>
-          <span className="section-label" style={{ margin: "0 0 0 16px" }}>
+          <span className={`section-label ${styles.inlineLabel} ${styles.projectLabel}`}>
             Dashboard del proyecto
           </span>
-          <FormControl size="small" style={{ minWidth: 220 }}>
+          <FormControl size="small" className={styles.projectControl}>
             <Select
               value={selectedProjectId}
               displayEmpty
               onChange={(event) => onProjectChange(event.target.value as string)}
             >
               <MenuItem value="">
-                <em style={{ fontStyle: "normal", color: "#A1A1AA" }}>Seleccionar proyecto</em>
+                <em className={styles.placeholder}>Seleccionar proyecto</em>
               </MenuItem>
               {(proyectos || []).map((proyecto) => (
                 <MenuItem key={proyecto.projectId} value={proyecto.projectId}>

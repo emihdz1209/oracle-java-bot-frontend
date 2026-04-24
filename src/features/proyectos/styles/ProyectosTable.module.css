@@ -1,0 +1,90 @@
+.tableContainer {
+  width: 100%;
+}
+
+.emptyState {
+  color: var(--text-3);
+  font-size: 0.875rem;
+  margin-top: 24px;
+}
+
+.activeRow td {
+  background: var(--accent-subtle);
+}
+
+.activeRow:hover td {
+  background: var(--accent-subtle);
+}
+
+.detailButton {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-1);
+  font-size: inherit;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+.detailButtonActive {
+  color: var(--accent);
+}
+
+.progressValue {
+  width: 80px;
+  height: 6px;
+  border: none;
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  background: var(--surface-3);
+  appearance: none;
+}
+
+.progressValue::-webkit-progress-bar {
+  background: var(--surface-3);
+  border-radius: var(--r-pill);
+}
+
+.progressValue::-webkit-progress-value {
+  background: var(--progress-color, var(--warning));
+  border-radius: var(--r-pill);
+  transition: width 0.3s ease;
+}
+
+.progressValue::-moz-progress-bar {
+  background: var(--progress-color, var(--warning));
+  border-radius: var(--r-pill);
+}
+
+.progressLow {
+  --progress-color: #d97706;
+}
+
+.progressMedium {
+  --progress-color: #2563eb;
+}
+
+.progressHigh {
+  --progress-color: #16a34a;
+}
+
+.dashboardButton {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  font-weight: 400;
+}
+
+.dashboardButtonActive {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: 600;
+}

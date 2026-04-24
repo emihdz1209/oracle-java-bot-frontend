@@ -14,6 +14,7 @@ import {
   useDeleteProyecto,
 } from "@/features/proyectos/hooks/useProyectos";
 import type { Proyecto } from "@/features/proyectos/types/proyecto";
+import styles from "@/features/proyectos/styles/ProyectoSideModal.module.css";
 
 const fmtDate = (value: string | null) =>
   value ? new Date(value).toLocaleDateString("es-MX") : "—";
@@ -26,22 +27,232 @@ const toDatetimeLocal = (value: string | null): string => {
   return value.slice(0, 16);
 };
 
-const progressColor = (percentage: number) =>
-  percentage >= 75 ? "#16A34A" : percentage >= 40 ? "#2563EB" : "#D97706";
+const progressToneClass = (percentage: number) =>
+  percentage >= 75
+    ? styles.progressHigh
+    : percentage >= 40
+      ? styles.progressMedium
+      : styles.progressLow;
+
+const progressTextToneClass = (percentage: number) =>
+  percentage >= 75
+    ? styles.progressTextHigh
+    : percentage >= 40
+      ? styles.progressTextMedium
+      : "";
 
 interface SideModalProps {
   project: Proyecto | null;
   onClose: () => void;
   onProjectDeleted: (projectId: string) => void;
   teamId: string;
+  canManageProjects: boolean;
 }
 
-export const ProyectoSideModal = ({ project, onClose, onProjectDeleted, teamId }: SideModalProps) => {
+interface ProyectoFormState {
+  nombre: string;
+  descripcion: string;
+  fechaInicio: string;
+  fechaFin: string;
+}
+
+interface ProyectoViewContentProps {
+  project: Proyecto;
+  canManageProjects: boolean;
+  confirmDelete: boolean;
+  isDeleting: boolean;
+  onStartEdit: () => void;
+  onStartDelete: () => void;
+  onCancelDelete: () => void;
+  onDelete: () => void;
+}
+
+const ProyectoViewContent = ({
+  project,
+  canManageProjects,
+  confirmDelete,
+  isDeleting,
+  onStartEdit,
+  onStartDelete,
+  onCancelDelete,
+  onDelete,
+}: ProyectoViewContentProps) => {
+  const progress = project.progreso ?? 0;
+
+  return (
+    <div className="task-detail-content">
+      <div className="task-detail-section">
+        <span className="task-detail-label">Progreso</span>
+        <div className={styles.progressRow}>
+          <progress
+            className={`${styles.progressValue} ${progressToneClass(progress)}`}
+            value={progress}
+            max={100}
+          />
+          <span
+            className={`${styles.progressText} ${progressTextToneClass(progress)}`}
+          >
+            {progress}%
+          </span>
+        </div>
+      </div>
+
+      <div className="task-detail-section">
+        <span className="task-detail-label">Descripción</span>
+        <p className={`task-detail-description ${styles.description}`}>
+          {project.descripcion || "Sin descripción"}
+        </p>
+      </div>
+
+      <div className="task-detail-section">
+        <span className="task-detail-label">Fechas</span>
+        <div className={`task-system-meta ${styles.systemMeta}`}>
+          <p className="task-detail-description">
+            Inicio: {fmtDate(project.fechaInicio)}
+          </p>
+          <p className="task-detail-description">
+            Fin: {fmtDate(project.fechaFin)}
+          </p>
+        </div>
+      </div>
+
+      <div className={styles.actionsRow}>
+        {canManageProjects ? (
+          <>
+            <Button
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={onStartEdit}
+              size="small"
+            >
+              Editar
+            </Button>
+
+            {!confirmDelete ? (
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={onStartDelete}
+                size="small"
+              >
+                Eliminar
+              </Button>
+            ) : (
+              <div className={styles.deleteConfirmRow}>
+                <span className={styles.deleteConfirmText}>¿Confirmar eliminación?</span>
+                <Button
+                  variant="contained"
+                  color="error"
+                  size="small"
+                  onClick={onDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? <CircularProgress size={14} /> : "Sí, eliminar"}
+                </Button>
+                <Button variant="text" size="small" onClick={onCancelDelete}>
+                  Cancelar
+                </Button>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="task-detail-feedback">
+            Solo MANAGERS pueden editar o eliminar proyectos.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface ProyectoEditFormProps {
+  form: ProyectoFormState;
+  isSaving: boolean;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onSubmit: (event: React.FormEvent) => void;
+  onCancel: () => void;
+}
+
+const ProyectoEditForm = ({
+  form,
+  isSaving,
+  onChange,
+  onSubmit,
+  onCancel,
+}: ProyectoEditFormProps) => {
+  return (
+    <form onSubmit={onSubmit} className="task-edit-form">
+      <TextField
+        name="nombre"
+        label="Nombre del proyecto"
+        value={form.nombre}
+        onChange={onChange}
+        required
+        size="small"
+        fullWidth
+      />
+      <TextField
+        name="descripcion"
+        label="Descripción"
+        value={form.descripcion}
+        onChange={onChange}
+        multiline
+        rows={3}
+        size="small"
+        fullWidth
+      />
+      <TextField
+        name="fechaInicio"
+        label="Fecha inicio"
+        type="datetime-local"
+        value={form.fechaInicio}
+        onChange={onChange}
+        size="small"
+        fullWidth
+        slotProps={{ inputLabel: { shrink: true } }}
+      />
+      <TextField
+        name="fechaFin"
+        label="Fecha fin"
+        type="datetime-local"
+        value={form.fechaFin}
+        onChange={onChange}
+        size="small"
+        fullWidth
+        slotProps={{ inputLabel: { shrink: true } }}
+      />
+
+      <div className={styles.editActions}>
+        <Tooltip title="Cancelar edición">
+          <IconButton onClick={onCancel} size="small">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Button
+          type="submit"
+          className="AddButton"
+          disabled={isSaving}
+        >
+          {isSaving ? <CircularProgress size={18} /> : "Guardar cambios"}
+        </Button>
+      </div>
+    </form>
+  );
+};
+
+export const ProyectoSideModal = ({
+  project,
+  onClose,
+  onProjectDeleted,
+  teamId,
+  canManageProjects,
+}: SideModalProps) => {
   const isOpen = Boolean(project);
 
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ProyectoFormState>({
     nombre: "",
     descripcion: "",
     fechaInicio: "",
@@ -74,7 +285,7 @@ export const ProyectoSideModal = ({ project, onClose, onProjectDeleted, teamId }
 
   const handleSave = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!project || !form.nombre.trim()) {
+    if (!canManageProjects || !project || !form.nombre.trim()) {
       return;
     }
 
@@ -95,7 +306,7 @@ export const ProyectoSideModal = ({ project, onClose, onProjectDeleted, teamId }
   };
 
   const handleDelete = () => {
-    if (!project) {
+    if (!canManageProjects || !project) {
       return;
     }
 
@@ -106,8 +317,6 @@ export const ProyectoSideModal = ({ project, onClose, onProjectDeleted, teamId }
       },
     });
   };
-
-  const progress = project?.progreso ?? 0;
 
   return (
     <aside
@@ -136,144 +345,25 @@ export const ProyectoSideModal = ({ project, onClose, onProjectDeleted, teamId }
         <div className="tareas-side-modal-body">
           {!project ? (
             <p className="task-detail-empty">Selecciona un proyecto para ver su detalle.</p>
-          ) : !editing ? (
-            <div className="task-detail-content">
-              <div className="task-detail-section">
-                <span className="task-detail-label">Progreso</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
-                  <div className="progress-track" style={{ flex: 1 }}>
-                    <div
-                      className="progress-fill"
-                      style={{ width: `${progress}%`, background: progressColor(progress) }}
-                    />
-                  </div>
-                  <span style={{ fontWeight: 700, color: progressColor(progress), minWidth: 36, fontSize: "0.88rem" }}>
-                    {progress}%
-                  </span>
-                </div>
-              </div>
-
-              <div className="task-detail-section">
-                <span className="task-detail-label">Descripción</span>
-                <p className="task-detail-description" style={{ marginTop: 4 }}>
-                  {project.descripcion || "Sin descripción"}
-                </p>
-              </div>
-
-              <div className="task-detail-section">
-                <span className="task-detail-label">Fechas</span>
-                <div className="task-system-meta" style={{ marginTop: 4 }}>
-                  <p className="task-detail-description">
-                    Inicio: {fmtDate(project.fechaInicio)}
-                  </p>
-                  <p className="task-detail-description">
-                    Fin: {fmtDate(project.fechaFin)}
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<EditIcon />}
-                  onClick={() => setEditing(true)}
-                  size="small"
-                >
-                  Editar
-                </Button>
-
-                {!confirmDelete ? (
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={() => setConfirmDelete(true)}
-                    size="small"
-                  >
-                    Eliminar
-                  </Button>
-                ) : (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: "0.8rem", color: "var(--text-2)" }}>
-                      ¿Confirmar eliminación?
-                    </span>
-                    <Button
-                      variant="contained"
-                      color="error"
-                      size="small"
-                      onClick={handleDelete}
-                      disabled={deleteMutation.isPending}
-                    >
-                      {deleteMutation.isPending ? <CircularProgress size={14} /> : "Sí, eliminar"}
-                    </Button>
-                    <Button
-                      variant="text"
-                      size="small"
-                      onClick={() => setConfirmDelete(false)}
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
+          ) : editing && canManageProjects ? (
+            <ProyectoEditForm
+              form={form}
+              isSaving={updateMutation.isPending}
+              onChange={handleChange}
+              onSubmit={handleSave}
+              onCancel={() => setEditing(false)}
+            />
           ) : (
-            <form onSubmit={handleSave} className="task-edit-form">
-              <TextField
-                name="nombre"
-                label="Nombre del proyecto"
-                value={form.nombre}
-                onChange={handleChange}
-                required
-                size="small"
-                fullWidth
-              />
-              <TextField
-                name="descripcion"
-                label="Descripción"
-                value={form.descripcion}
-                onChange={handleChange}
-                multiline
-                rows={3}
-                size="small"
-                fullWidth
-              />
-              <TextField
-                name="fechaInicio"
-                label="Fecha inicio"
-                type="datetime-local"
-                value={form.fechaInicio}
-                onChange={handleChange}
-                size="small"
-                fullWidth
-                slotProps={{ inputLabel: { shrink: true } }}
-              />
-              <TextField
-                name="fechaFin"
-                label="Fecha fin"
-                type="datetime-local"
-                value={form.fechaFin}
-                onChange={handleChange}
-                size="small"
-                fullWidth
-                slotProps={{ inputLabel: { shrink: true } }}
-              />
-
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <Tooltip title="Cancelar edición">
-                  <IconButton onClick={() => setEditing(false)} size="small">
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Button
-                  type="submit"
-                  className="AddButton"
-                  disabled={updateMutation.isPending}
-                >
-                  {updateMutation.isPending ? <CircularProgress size={18} /> : "Guardar cambios"}
-                </Button>
-              </div>
-            </form>
+            <ProyectoViewContent
+              project={project}
+              canManageProjects={canManageProjects}
+              confirmDelete={confirmDelete}
+              isDeleting={deleteMutation.isPending}
+              onStartEdit={() => setEditing(true)}
+              onStartDelete={() => setConfirmDelete(true)}
+              onCancelDelete={() => setConfirmDelete(false)}
+              onDelete={handleDelete}
+            />
           )}
         </div>
       </div>

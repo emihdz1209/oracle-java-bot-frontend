@@ -1,0 +1,20 @@
+.dashboardSection {
+  width: 100%;
+}
+
+.dashboardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.inlineSectionLabel {
+  margin: 0 !important;
+}
+
+.dashboardProjectName {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
