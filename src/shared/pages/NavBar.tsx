@@ -1,9 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ROUTES } from "@/app/router/routes";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import MenuIcon from "@mui/icons-material/Menu";
-import CloseIcon from "@mui/icons-material/Close";
 import LogoutIcon from "@mui/icons-material/Logout";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
@@ -22,7 +20,6 @@ const NAV_ITEMS = [
 ];
 
 export const NavBar = () => {
-  const [open, setOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { auth, logout } = useAuth();
@@ -38,91 +35,44 @@ export const NavBar = () => {
   };
 
   const handleLogout = () => {
-    setOpen(false);
     logout();
     navigate(ROUTES.login, { replace: true });
   };
 
   return (
-    <>
-      {/* Collapsed quick-access rail */}
-      <div className="nav-quick-rail">
-        <button
-          className="nav-toggle-btn"
-          onClick={() => setOpen((prev) => !prev)}
-          aria-label={open ? "Cerrar menú" : "Abrir menú"}
-          title={open ? "Cerrar menú" : "Abrir menú"}
-          type="button"
-        >
-          {open ? <CloseIcon /> : <MenuIcon />}
-        </button>
-
-        <div className="nav-quick-links" aria-label="Accesos rápidos">
-          {NAV_ITEMS.map(({ path, label, icon }) => (
-            <Link
-              key={path}
-              to={path}
-              className={`nav-quick-link${isNavItemActive(path) ? " active" : ""}`}
-              onClick={() => setOpen(false)}
-              aria-label={label}
-              title={label}
-            >
-              {icon}
-            </Link>
-          ))}
-        </div>
+    <aside className="nav-quick-rail" role="navigation" aria-label="Menú principal">
+      <div className="nav-rail-header">
+        <span className="nav-logo-icon">W</span>
+        <span className="nav-rail-title">Workspace</span>
       </div>
 
-      {/* Dim backdrop */}
-      {open && <div className="nav-backdrop" onClick={() => setOpen(false)} />}
-
-      {/* Left-side sliding panel */}
-      <div
-        className={`nav-panel${open ? " nav-open" : ""}`}
-        role="navigation"
-        aria-label="Menú principal"
-      >
-        <div className="nav-header">
-          <div className="nav-logo">
-            <span className="nav-logo-icon">✓</span>
-            <span>Workspace</span>
-          </div>
-          <button
-            className="nav-close-btn"
-            onClick={() => setOpen(false)}
-            aria-label="Cerrar menú"
+      <div className="nav-quick-links" aria-label="Accesos rápidos">
+        {NAV_ITEMS.map(({ path, label, icon }) => (
+          <Link
+            key={path}
+            to={path}
+            className={`nav-quick-link${isNavItemActive(path) ? " active" : ""}`}
+            aria-label={label}
+            title={label}
           >
-            <CloseIcon />
-          </button>
-        </div>
-
-        <div className="nav-links">
-          {NAV_ITEMS.map(({ path, label, icon }) => (
-            <Link
-              key={path}
-              to={path}
-              className={`nav-link${isNavItemActive(path) ? " active" : ""}`}
-              onClick={() => setOpen(false)}
-            >
-              {icon}
-              <span>{label}</span>
-            </Link>
-          ))}
-        </div>
-
-        {/* User info + logout */}
-        <div className="nav-user">
-          {auth.user && (
-            <span className="nav-user-email">{auth.user.email}</span>
-          )}
-          <button className="nav-logout-btn" onClick={handleLogout}>
-            <LogoutIcon />
-            <span>Cerrar sesión</span>
-          </button>
-        </div>
-
-        <div className="nav-footer">MtdrSpring · v1.0</div>
+            <span className="nav-quick-link-icon">{icon}</span>
+            <span className="nav-quick-link-label">{label}</span>
+          </Link>
+        ))}
       </div>
-    </>
+
+      <div className="nav-rail-bottom">
+        {auth.user && (
+          <span className="nav-rail-email">{auth.user.email}</span>
+        )}
+
+        <button className="nav-rail-logout-btn" onClick={handleLogout} type="button">
+          <LogoutIcon />
+          <span>Cerrar sesión</span>
+        </button>
+      </div>
+
+      <div className="nav-rail-footer">MtdrSpring · v1.0</div>
+    </aside>
   );
 };

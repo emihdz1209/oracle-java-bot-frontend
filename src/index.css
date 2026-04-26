@@ -874,44 +874,40 @@ button.DoneButton:hover,
   background: #f4f5f7;
   display: flex;
   flex-direction: column;
+  padding: 14px 10px 10px;
+  z-index: 1200;
+  overflow: hidden;
+  transition: width 0.22s ease, box-shadow 0.22s ease;
+}
+
+.nav-quick-rail:hover {
+  width: var(--nav-w);
+  box-shadow: 12px 0 28px rgba(15, 23, 42, 0.14);
+}
+
+.nav-rail-header {
+  display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 10px;
-  z-index: 1200;
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
+  min-height: 48px;
+  padding: 0 6px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 
-.nav-toggle-btn {
-  width: 44px;
-  height: 44px;
-  background: #ffffff;
-  border: 1px solid #d4d4d8;
-  border-radius: 12px;
-  cursor: pointer;
-  color: var(--text-2);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition:
-    background 0.16s,
-    border-color 0.16s,
-    box-shadow 0.16s,
-    color 0.16s;
+.nav-rail-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.01em;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
-.nav-toggle-btn:hover {
-  background: #fafafa;
-  border-color: #a1a1aa;
-  color: var(--text-1);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
-}
-
-.nav-toggle-btn svg {
-  font-size: 1.16rem !important;
-  display: block !important;
+.nav-quick-rail:hover .nav-rail-title {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .nav-quick-links {
@@ -919,24 +915,61 @@ button.DoneButton:hover,
   display: flex;
   flex-direction: column;
   gap: 8px;
-  align-items: center;
-  margin-top: 4px;
+  align-items: stretch;
+  margin-top: 10px;
+  padding: 0 4px 8px;
+  overflow-y: auto;
 }
 
 .nav-quick-link {
-  width: 40px;
-  height: 40px;
+  width: 100%;
+  min-height: 40px;
   border-radius: 10px;
   border: 1px solid transparent;
   color: #52525b;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
   text-decoration: none;
+  padding: 8px 10px;
   transition:
     color 0.16s ease,
     background 0.16s ease,
     border-color 0.16s ease;
+}
+
+.nav-quick-link-icon {
+  width: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nav-quick-link-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.nav-quick-rail:not(:hover) .nav-quick-link {
+  justify-content: center;
+  gap: 0;
+  padding: 8px;
+}
+
+.nav-quick-rail:not(:hover) .nav-quick-link-label {
+  width: 0;
+  max-width: 0;
+  overflow: hidden;
+}
+
+.nav-quick-rail:hover .nav-quick-link-label {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .nav-quick-link:hover {
@@ -953,6 +986,83 @@ button.DoneButton:hover,
 .nav-quick-link svg {
   font-size: 1.06rem !important;
   flex-shrink: 0;
+}
+
+.nav-rail-bottom {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  padding: 10px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav-rail-email {
+  font-size: 0.72rem;
+  color: #71717a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.nav-rail-logout-btn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #52525b;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px;
+  cursor: pointer;
+  transition:
+    color 0.16s ease,
+    background 0.16s ease;
+}
+
+.nav-rail-logout-btn:hover {
+  color: #111827;
+  background: #e4e4e7;
+}
+
+.nav-rail-logout-btn span {
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.nav-quick-rail:hover .nav-rail-email,
+.nav-quick-rail:hover .nav-rail-logout-btn span {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.nav-quick-rail:hover .nav-rail-logout-btn {
+  justify-content: flex-start;
+  padding: 8px 10px;
+}
+
+.nav-rail-footer {
+  padding: 10px 6px 2px;
+  border-top: 1px solid var(--border);
+  font-size: 0.67rem;
+  color: #6b7280;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.nav-quick-rail:hover .nav-rail-footer {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 /* ── Nav Backdrop ──────────────────────────────────────────────── */
@@ -1393,13 +1503,15 @@ button.DoneButton:hover,
   }
 
   .nav-quick-links {
-    margin-top: 4px;
+    margin-top: 8px;
   }
 
-  .nav-toggle-btn,
   .nav-quick-link {
-    width: 36px;
-    height: 36px;
+    min-height: 36px;
+  }
+
+  .nav-quick-link-icon {
+    width: 20px;
   }
 
   .kanban-board { grid-template-columns: 1fr; }
