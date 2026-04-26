@@ -12,6 +12,7 @@ import { EquipoDetailPage } from "@/features/equipos/pages/EquipoDetailPage"; //
 import { ProyectosPage } from "@/features/proyectos/pages/ProyectosPage";
 import { ProyectoDashboardPage } from "@/features/proyectos/pages/ProyectoDashboardPage";
 import { TareasPage } from "@/features/tareas/pages/TareasPage";
+import { AgentPage } from "@/features/agent/pages/AgentPage";
 import { CreateTaskPriorityPage } from "@/features/taskPriorities/taskPriorities/pages/CreateTaskPriorityPage";
 
 import { ProtectedRoute } from "./ProtectedRoute";
@@ -35,6 +36,12 @@ export const AppRouter = () => {
         <Route
           path={ROUTES.tareas}
           element={<ProtectedRoute><TareasPage /></ProtectedRoute>}
+        />
+
+        {/* 🔐 Agent */}
+        <Route
+          path={ROUTES.agent}
+          element={<ProtectedRoute><AgentPage /></ProtectedRoute>}
         />
 
         {/* 🔐 Proyectos */}
