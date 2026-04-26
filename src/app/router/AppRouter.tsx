@@ -6,9 +6,8 @@ import { ROUTES } from "./routes";
 
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
-import { CreateUserPage } from "@/features/users/pages/CreateUserPage";
 import { EquiposPage } from "@/features/equipos/pages/EquiposPage";
-import { EquipoDetailPage } from "@/features/equipos/pages/EquipoDetailPage"; // 🔹 NUEVO
+import { EquipoDetailPage } from "@/features/equipos/pages/EquipoDetailPage";
 import { ProyectosPage } from "@/features/proyectos/pages/ProyectosPage";
 import { ProyectoDashboardPage } from "@/features/proyectos/pages/ProyectoDashboardPage";
 import { TareasPage } from "@/features/tareas/pages/TareasPage";
@@ -69,12 +68,6 @@ export const AppRouter = () => {
               <EquipoDetailPage />
             </ProtectedRoute>
           }
-        />
-
-        {/* 🔐 Users */}
-        <Route
-          path={ROUTES.users}
-          element={<ProtectedRoute><CreateUserPage /></ProtectedRoute>}
         />
 
         {/* 🔐 Priorities */}
