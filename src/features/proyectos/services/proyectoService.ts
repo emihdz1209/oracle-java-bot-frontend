@@ -8,7 +8,31 @@ import type {
   SprintKpis,
   DeveloperPerformance,
   ProjectProgress,
+  ProjectDocument,
 } from "@/features/proyectos/types/proyecto";
+
+/**
+ * Ensure a UUID string contains hyphens in the 8-4-4-4-12 format.
+ * If the incoming id already contains hyphens it's returned as-is.
+ * If it's a 32-char hex string without hyphens, it will insert them.
+ */
+const ensureHyphenatedUuid = (id: string) => {
+  if (!id) return id;
+  if (id.includes("-")) return id;
+  const clean = id.replace(/[^0-9a-fA-F]/g, "");
+  if (clean.length !== 32) return id;
+  return (
+    clean.slice(0, 8) +
+    "-" +
+    clean.slice(8, 12) +
+    "-" +
+    clean.slice(12, 16) +
+    "-" +
+    clean.slice(16, 20) +
+    "-" +
+    clean.slice(20)
+  ).toLowerCase();
+};
 
 export const getProyectosByTeam = async (teamId: string): Promise<Proyecto[]> => {
   const response = await apiClient.get<Proyecto[]>(`/api/teams/${teamId}/projects`);
@@ -88,5 +112,38 @@ export const getDeveloperPerformance = async (
   const response = await apiClient.get<DeveloperPerformance[]>(
     `/api/projects/${projectId}/developers/performance`
   );
+  return response.data;
+};
+
+export const getProjectDocuments = async (
+  projectId: string,
+  documentType?: string
+): Promise<ProjectDocument[]> => {
+  const pid = ensureHyphenatedUuid(projectId);
+  const url = documentType
+    ? `/api/projects/${pid}/documents?documentType=${encodeURIComponent(documentType)}`
+    : `/api/projects/${pid}/documents`;
+
+  const response = await apiClient.get<ProjectDocument[]>(url);
+  return response.data;
+};
+
+export const uploadProjectDocument = async (
+  projectId: string,
+  file: File,
+  documentType: string
+): Promise<ProjectDocument> => {
+  const formData = new FormData();
+  formData.append("documentType", documentType);
+  formData.append("file", file);
+
+  const pid = ensureHyphenatedUuid(projectId);
+
+  const response = await apiClient.post<ProjectDocument>(`/api/projects/${pid}/documents`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
   return response.data;
 };

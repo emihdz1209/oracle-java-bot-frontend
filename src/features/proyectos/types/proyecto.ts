@@ -52,3 +52,15 @@ export interface ProjectProgress {
   projectId: string;
   progress: number;
 }
+
+export interface ProjectDocument {
+  documentId: string;
+  projectId: string;
+  documentType: string;
+  fileName: string;
+  fileUrl: string;
+  storagePath: string;
+  contentType: string;
+  fileSizeBytes: number;
+  createdAt: string;
+}

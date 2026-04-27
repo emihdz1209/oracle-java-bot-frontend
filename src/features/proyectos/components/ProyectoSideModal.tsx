@@ -1,13 +1,26 @@
 import { useEffect, useState } from "react";
-import {
-  TextField,
-  Button,
-  CircularProgress,
-} from "@mui/material";
+import { TextField, Button, CircularProgress, IconButton } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
-import { useUpdateProyecto, useDeleteProyecto } from "@/features/proyectos/hooks/useProyectos";
-import type { Proyecto } from "@/features/proyectos/types/proyecto";
+import {
+  useUpdateProyecto,
+  useDeleteProyecto,
+  useProjectDocuments,
+  useUploadProjectDocument,
+} from "@/features/proyectos/hooks/useProyectos";
+import type { Proyecto, ProjectDocument } from "@/features/proyectos/types/proyecto";
 import styles from "@/features/proyectos/styles/ProyectoSideModal.module.css";
+
+/**
+ * Format file size in human-readable format (B, KB, MB, etc.)
+ */
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const index = Math.floor(Math.log(bytes) / Math.log(1024));
+  const size = (bytes / Math.pow(1024, index)).toFixed(0);
+  return `${size} ${units[index]}`;
+};
 
 interface SideModalProps {
   project: Proyecto | null;
@@ -32,6 +45,10 @@ interface ProyectoEditFormProps {
   onSubmit: (event: React.FormEvent) => void;
   onDelete: () => void;
   onCancel: () => void;
+  // Attachments
+  documents?: ProjectDocument[];
+  isDocsLoading?: boolean;
+  onFileChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const ProyectoEditForm = ({
@@ -42,6 +59,10 @@ const ProyectoEditForm = ({
   onSubmit,
   onDelete,
   onCancel,
+  // attachments props
+  documents = [],
+  isDocsLoading = false,
+  onFileChange,
 }: ProyectoEditFormProps) => {
   return (
     <form onSubmit={onSubmit} className={styles.editForm}>
@@ -85,7 +106,19 @@ const ProyectoEditForm = ({
       <div className={styles.attachmentsSection}>
         <span className={styles.attachmentsTitle}>Attachments</span>
 
-        <button type="button" className={styles.uploadBox}>
+        <input
+          type="file"
+          accept="application/pdf,image/*,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          style={{ display: "none" }}
+          onChange={onFileChange}
+          id="project-file-input"
+        />
+
+        <button
+          type="button"
+          className={styles.uploadBox}
+          onClick={() => document.getElementById("project-file-input")?.click()}
+        >
           <span className={styles.uploadIconWrap}>
             <img src="/upload.svg" alt="" aria-hidden="true" className={styles.uploadIcon} />
           </span>
@@ -94,6 +127,35 @@ const ProyectoEditForm = ({
           </p>
           <p className={styles.uploadSecondaryText}>PDF, images, or docs up to 20MB</p>
         </button>
+
+        {/* No document type field per design; upload triggers automatically on file select */}
+
+        <div className={styles.documentsList}>
+          {isDocsLoading ? (
+            <CircularProgress size={18} />
+          ) : documents && documents.length > 0 ? (
+            documents.map((doc) => (
+              <div key={doc.documentId} className={styles.documentRow}>
+                <img src="/file-description.svg" alt="" className={styles.documentIcon} />
+                <div className={styles.documentInfo}>
+                  <a href={doc.fileUrl} target="_blank" rel="noreferrer" className={styles.documentLink}>
+                    {doc.fileName}
+                  </a>
+                  <div className={styles.documentMeta}>
+                    {typeof doc.fileSizeBytes === "number" ? formatFileSize(doc.fileSizeBytes) : ""}
+                  </div>
+                </div>
+                <IconButton size="small" aria-label="delete-attachment" title="Delete attachment">
+                  <DeleteIcon fontSize="small" sx={{ color: "#ef4444" }} />
+                </IconButton>
+              </div>
+            ))
+          ) : (
+            <div className={styles.noDocuments}>
+              No documents attached for this project.
+            </div>
+          )}
+        </div>
       </div>
 
       <div className={styles.deleteActionRow}>
@@ -118,6 +180,7 @@ const ProyectoEditForm = ({
           className={styles.cancelButton}
           onClick={onCancel}
           startIcon={<CloseIcon fontSize="small" />}
+          sx={{ padding: "6px 16px", height: "auto" }}
         >
           Cancel
         </Button>
@@ -126,6 +189,7 @@ const ProyectoEditForm = ({
           variant="contained"
           className={styles.saveButton}
           disabled={isSaving}
+          sx={{ padding: "6px 16px", height: "auto" }}
         >
           {isSaving ? <CircularProgress size={18} /> : "Save changes"}
         </Button>
@@ -152,6 +216,43 @@ export const ProyectoSideModal = ({
 
   const updateMutation = useUpdateProyecto(teamId);
   const deleteMutation = useDeleteProyecto(teamId);
+
+  // Documents upload/list state
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const documentsQuery = useProjectDocuments(project?.projectId);
+  const uploadMutation = useUploadProjectDocument(project?.projectId);
+
+  useEffect(() => {
+    if (project?.projectId) {
+      documentsQuery.refetch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project?.projectId]);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setSelectedFile(file);
+  };
+
+  // Auto-upload when a file is selected (send default documentType 'OTHER')
+  useEffect(() => {
+    if (!selectedFile || !project) return;
+
+    // Validate size 20MB
+    if (selectedFile.size > 20 * 1024 * 1024) {
+      alert("File is too large. Maximum allowed size is 20MB.");
+      setSelectedFile(null);
+      return;
+    }
+
+    uploadMutation.mutate({ file: selectedFile, documentType: "OTHER" }, {
+      onSuccess: () => {
+        setSelectedFile(null);
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFile, project?.projectId]);
 
   useEffect(() => {
     if (!project) {
@@ -241,6 +342,9 @@ export const ProyectoSideModal = ({
               onSubmit={handleSave}
               onDelete={handleDelete}
               onCancel={onClose}
+              documents={documentsQuery.data}
+              isDocsLoading={documentsQuery.isLoading}
+              onFileChange={handleFileChange}
             />
           ) : (
             <p className="task-detail-feedback">Only MANAGERS can edit projects.</p>

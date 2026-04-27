@@ -587,6 +587,7 @@ table tr:hover td {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  padding-right: 8px;
 }
 
 .task-detail-loading,

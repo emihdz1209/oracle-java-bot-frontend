@@ -26,8 +26,8 @@
 
 .editActions {
   display: flex;
-  gap: 12px;
-  justify-content: flex-end;
+  gap: 32px;
+  justify-content: center;
   border-top: 1px solid var(--border);
   padding-top: 16px;
   margin-top: auto;
@@ -131,4 +131,65 @@
 
 .saveButton {
   min-width: 160px;
+}
+
+.documentsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.documentRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  gap: 12px;
+  border: 1px solid #e0e6ed;
+  border-radius: 8px;
+  background: transparent;
+}
+
+.documentRow:hover {
+  background: transparent;
+}
+
+.documentIcon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: hue-rotate(200deg) saturate(1.5);
+}
+
+.documentInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.documentLink {
+  font-size: 0.95rem;
+  color: #0066cc;
+  text-decoration: none;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.documentLink:hover {
+  text-decoration: underline;
+}
+
+.documentMeta {
+  font-size: 0.75rem;
+  color: #8a92a2;
+}
+
+.noDocuments {
+  padding: 12px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #8a92a2;
 }

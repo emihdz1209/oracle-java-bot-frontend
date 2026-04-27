@@ -13,6 +13,8 @@ import {
   getSprintKpis,
   getProjectProgress,
   getDeveloperPerformance,
+  getProjectDocuments,
+  uploadProjectDocument,
 } from "@/features/proyectos/services/proyectoService";
 import type {
   CreateProyectoRequest,
@@ -127,5 +129,25 @@ export const useDeveloperPerformance = (projectId?: string) => {
     queryKey: ["developerPerformance", projectId],
     queryFn: () => getDeveloperPerformance(projectId!),
     enabled: !!projectId,
+  });
+};
+
+export const useProjectDocuments = (projectId?: string, documentType?: string) => {
+  return useQuery({
+    queryKey: ["projectDocuments", projectId, documentType],
+    queryFn: () => getProjectDocuments(projectId!, documentType),
+    enabled: !!projectId,
+  });
+};
+
+export const useUploadProjectDocument = (projectId?: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ file, documentType }: { file: File; documentType: string }) =>
+      uploadProjectDocument(projectId!, file, documentType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projectDocuments", projectId] });
+    },
   });
 };
