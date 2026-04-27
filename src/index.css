@@ -890,7 +890,7 @@ button.DoneButton:hover,
   align-items: center;
   gap: 12px;
   min-height: 48px;
-  padding: 0 6px 12px;
+  padding: 0 14px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
