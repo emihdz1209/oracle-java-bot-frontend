@@ -888,7 +888,7 @@ button.DoneButton:hover,
 .nav-rail-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   min-height: 48px;
   padding: 0 14px;
   border-bottom: 1px solid var(--border);
