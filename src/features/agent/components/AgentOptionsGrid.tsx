@@ -15,6 +15,14 @@ interface AgentOptionsGridProps {
   onSelectOption: (option: AgentOption) => void;
 }
 
+const getIconForOption = (optionId: AgentOptionId): string => {
+  const iconMap: Record<AgentOptionId, string> = {
+    "generate-tasks": "/list-details.svg",
+    "duplicate-task-analysis": "/copy.svg",
+  };
+  return iconMap[optionId];
+};
+
 export const AgentOptionsGrid = ({
   options,
   onSelectOption,
@@ -31,11 +39,14 @@ export const AgentOptionsGrid = ({
             className={styles.card}
             onClick={() => onSelectOption(option)}
           >
-            <div className={styles.cardHeader}>
-              <span aria-hidden="true" className={styles.headerIcon} />
+            <div className={styles.titleContainer}>
+              <img
+                src={getIconForOption(option.id)}
+                alt=""
+                className={styles.titleIcon}
+              />
+              <h3 className={styles.optionName}>{option.title}</h3>
             </div>
-
-            <h3 className={styles.optionName}>{option.title}</h3>
             <p className={styles.description}>{option.description}</p>
           </button>
         ))}

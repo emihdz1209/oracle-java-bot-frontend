@@ -66,6 +66,19 @@
   opacity: 1;
 }
 
+.titleContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.titleIcon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  filter: invert(37%) sepia(86%) saturate(1234%) hue-rotate(204deg) brightness(98%) contrast(98%);
+}
+
 .optionName {
   margin: 0;
   font-size: 1.12rem;
