@@ -192,7 +192,7 @@ export const AgentProjectSelectorModal = ({
           <TextField
             type="number"
             size="small"
-            label="Horas de trabajo"
+            label="Horas de trabajo máximas por tarea"
             value={plannedHours}
             onChange={(event) => setPlannedHours(event.target.value)}
             disabled={!selectedProjectId}
