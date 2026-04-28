@@ -2,9 +2,7 @@ import styles from "@/features/agent/styles/AgentOptionsGrid.module.css";
 
 export type AgentOptionId =
   | "generate-tasks"
-  | "duplicate-task-analysis"
-  | "delay-risk-prediction"
-  | "smart-backlog-prioritization";
+  | "duplicate-task-analysis";
 
 export interface AgentOption {
   id: AgentOptionId;
@@ -34,7 +32,6 @@ export const AgentOptionsGrid = ({
             onClick={() => onSelectOption(option)}
           >
             <div className={styles.cardHeader}>
-              <span className={styles.statusBadge}>Work in progress</span>
               <span aria-hidden="true" className={styles.headerIcon} />
             </div>
 

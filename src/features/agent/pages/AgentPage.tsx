@@ -22,18 +22,6 @@ const AGENT_OPTIONS: AgentOption[] = [
     description:
       "Selecciona el proyecto para inspeccionar coincidencias potenciales entre tareas existentes.",
   },
-  {
-    id: "delay-risk-prediction",
-    title: "Prediccion de riesgos de retrasos",
-    description:
-      "Define el contexto del proyecto para estimar alertas tempranas de retrasos en entregables.",
-  },
-  {
-    id: "smart-backlog-prioritization",
-    title: "Priorizacion inteligente del backlog",
-    description:
-      "Elige el proyecto para ordenar el backlog con criterios sugeridos por el agente.",
-  },
 ];
 
 export const AgentPage = () => {
@@ -65,9 +53,7 @@ export const AgentPage = () => {
       </div>
 
       <p className={styles.introText}>
-        Esta seccion centraliza capacidades de IA para planificacion y analitica. Por
-        ahora puedes avanzar hasta la seleccion de equipo y proyecto mientras se libera
-        la siguiente fase.
+        Esta seccion centraliza capacidades de IA para planificacion y analitica.
       </p>
 
       <AgentOptionsGrid options={AGENT_OPTIONS} onSelectOption={handleSelectOption} />

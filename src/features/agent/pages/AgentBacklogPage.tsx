@@ -357,6 +357,7 @@ export const AgentBacklogPage = () => {
   const {
     data: suggestionsData,
     isLoading: suggestionsLoading,
+    isFetching: suggestionsFetching,
     isError: suggestionsError,
     refetch: refetchSuggestions,
   } = useAiSuggestions(projectId);
@@ -403,6 +404,7 @@ export const AgentBacklogPage = () => {
   const [applyError, setApplyError] = useState<string | null>(null);
   const [applySuccess, setApplySuccess] = useState<string | null>(null);
   const [isApplying, setIsApplying] = useState(false);
+  const [isWaitingForSuggestions, setIsWaitingForSuggestions] = useState(true);
 
   useEffect(() => {
     if (!suggestions) {
@@ -442,6 +444,36 @@ export const AgentBacklogPage = () => {
       return changed ? next : current;
     });
   }, [suggestions]);
+
+  useEffect(() => {
+    if (suggestionsError) {
+      setIsWaitingForSuggestions(false);
+      return;
+    }
+
+    if (suggestions.length > 0) {
+      setIsWaitingForSuggestions(false);
+      return;
+    }
+
+    setIsWaitingForSuggestions(true);
+  }, [suggestions.length, suggestionsError]);
+
+  useEffect(() => {
+    if (!isWaitingForSuggestions || suggestionsError) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (!suggestionsFetching) {
+        refetchSuggestions();
+      }
+    }, 2500);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isWaitingForSuggestions, refetchSuggestions, suggestionsError, suggestionsFetching]);
 
   useEffect(() => {
     if (!suggestions) {
@@ -712,7 +744,15 @@ export const AgentBacklogPage = () => {
       <div className={`tareas-layout ${styles.backlogLayout}`}>
         <div className="tareas-main">
           <div className="tareas-board-container">
-            {suggestionsLoading ? (
+            {isWaitingForSuggestions ? (
+              <div className={styles.loadingState}>
+                <CircularProgress size={28} />
+                <p className={styles.loadingText}>Generando sugerencias...</p>
+                <p className={styles.loadingHint}>
+                  Esto puede tardar unos segundos. Mantente en esta pantalla.
+                </p>
+              </div>
+            ) : suggestionsLoading ? (
               <div className={styles.loadingState}>
                 <CircularProgress size={28} />
               </div>
