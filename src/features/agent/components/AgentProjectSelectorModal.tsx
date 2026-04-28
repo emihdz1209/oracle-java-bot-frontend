@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   Alert,
   Button,
@@ -11,8 +13,10 @@ import {
 } from "@mui/material";
 
 import { AppModal } from "@/shared/components/AppModal";
+import { ROUTES } from "@/app/router/routes";
 import { useEquipos } from "@/features/equipos/hooks/useEquipos";
 import { useProyectos } from "@/features/proyectos/hooks/useProyectos";
+import { useGenerateAiBacklog } from "@/features/agent/hooks/useAiBacklog";
 import type { AgentOption } from "@/features/agent/components/AgentOptionsGrid";
 import styles from "@/features/agent/styles/AgentProjectSelectorModal.module.css";
 
@@ -23,17 +27,21 @@ interface AgentProjectSelectorModalProps {
 }
 
 const DEFAULT_HOURS = "8";
+const MAX_HOURS = 200;
 
 export const AgentProjectSelectorModal = ({
   open,
   onClose,
   selectedOption,
 }: AgentProjectSelectorModalProps) => {
+  const navigate = useNavigate();
   const { data: equipos = [], isLoading: isEquiposLoading } = useEquipos();
+  const generateBacklogMutation = useGenerateAiBacklog();
 
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [plannedHours, setPlannedHours] = useState(DEFAULT_HOURS);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { data: proyectos = [], isLoading: isProyectosLoading } = useProyectos(
     selectedTeamId
@@ -48,6 +56,7 @@ export const AgentProjectSelectorModal = ({
       setSelectedTeamId("");
       setSelectedProjectId("");
       setPlannedHours(DEFAULT_HOURS);
+      setSubmitError(null);
     }
   }, [open, selectedOption?.id]);
 
@@ -65,6 +74,55 @@ export const AgentProjectSelectorModal = ({
     [proyectos, selectedProjectId]
   );
 
+  const parsedHours = Number(plannedHours);
+  const isHoursValid =
+    Number.isFinite(parsedHours) && parsedHours > 0 && parsedHours <= MAX_HOURS;
+  const isSubmitting = generateBacklogMutation.isPending;
+  const actionLabel = isGenerateTasksOption
+    ? isSubmitting
+      ? "Generando..."
+      : "Generar tareas"
+    : "Proximamente";
+  const isActionDisabled = isGenerateTasksOption
+    ? !selectedProjectId || !isHoursValid || isSubmitting
+    : true;
+
+  const handleGenerateTasks = async () => {
+    setSubmitError(null);
+
+    if (!selectedProjectId) {
+      setSubmitError("Selecciona un proyecto para continuar.");
+      return;
+    }
+
+    if (!isHoursValid) {
+      setSubmitError(`Ingresa horas validas entre 1 y ${MAX_HOURS}.`);
+      return;
+    }
+
+    try {
+      await generateBacklogMutation.mutateAsync({
+        projectId: selectedProjectId,
+        maxHours: parsedHours,
+      });
+
+      onClose();
+      navigate(`${ROUTES.agentBacklog}/${selectedProjectId}`);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiMessage =
+          typeof error.response?.data?.error === "string"
+            ? error.response?.data?.error
+            : undefined;
+
+        setSubmitError(apiMessage ?? "No se pudo iniciar la generacion. Intenta nuevamente.");
+        return;
+      }
+
+      setSubmitError("No se pudo iniciar la generacion. Intenta nuevamente.");
+    }
+  };
+
   return (
     <AppModal
       open={open}
@@ -73,8 +131,9 @@ export const AgentProjectSelectorModal = ({
     >
       <div className={styles.container}>
         <p className={styles.helperText}>
-          Selecciona un equipo para cargar sus proyectos. La ejecución inteligente aún
-          está en construcción.
+          {isGenerateTasksOption
+            ? "Selecciona un equipo, un proyecto y define las horas disponibles para iniciar la generacion."
+            : "Selecciona un equipo para cargar sus proyectos. La ejecucion inteligente aun esta en construccion."}
         </p>
 
         {isEquiposLoading ? (
@@ -136,21 +195,46 @@ export const AgentProjectSelectorModal = ({
             label="Horas de trabajo"
             value={plannedHours}
             onChange={(event) => setPlannedHours(event.target.value)}
-            inputProps={{ min: 1, step: 1 }}
             disabled={!selectedProjectId}
             fullWidth
+            slotProps={{
+              htmlInput: {
+                min: 1,
+                max: MAX_HOURS,
+                step: 1,
+              },
+            }}
           />
         )}
 
-        <Alert severity="info" className={styles.placeholderAlert}>
-          <strong>En desarrollo:</strong> las funcionalidades de IA se habilitaran en la
-          siguiente fase.
-          {selectedTeamName ? ` Equipo: ${selectedTeamName}.` : ""}
-          {selectedProjectName ? ` Proyecto: ${selectedProjectName}.` : ""}
-        </Alert>
+        {submitError && (
+          <Alert severity="error" className={styles.placeholderAlert}>
+            {submitError}
+          </Alert>
+        )}
 
-        <Button className="AddButton" disabled fullWidth>
-          Proximamente
+        {isGenerateTasksOption ? (
+          <Alert severity="info" className={styles.placeholderAlert}>
+            La IA generara sugerencias basadas en los documentos del proyecto.
+            {selectedTeamName ? ` Equipo: ${selectedTeamName}.` : ""}
+            {selectedProjectName ? ` Proyecto: ${selectedProjectName}.` : ""}
+          </Alert>
+        ) : (
+          <Alert severity="info" className={styles.placeholderAlert}>
+            <strong>En desarrollo:</strong> las funcionalidades de IA se habilitaran en la
+            siguiente fase.
+            {selectedTeamName ? ` Equipo: ${selectedTeamName}.` : ""}
+            {selectedProjectName ? ` Proyecto: ${selectedProjectName}.` : ""}
+          </Alert>
+        )}
+
+        <Button
+          className="AddButton"
+          disabled={isActionDisabled}
+          fullWidth
+          onClick={handleGenerateTasks}
+        >
+          {actionLabel}
         </Button>
       </div>
     </AppModal>
