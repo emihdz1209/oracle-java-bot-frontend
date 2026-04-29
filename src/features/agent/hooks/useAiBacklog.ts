@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { AiSuggestionStatus, ApproveAiSuggestionRequest } from "@/features/agent/types/aiBacklog";
+import type { UseQueryOptions } from "@tanstack/react-query";
+import type {
+  AiSuggestionStatus,
+  AiTaskSuggestion,
+  ApproveAiSuggestionRequest,
+} from "@/features/agent/types/aiBacklog";
 import {
   approveAiSuggestion,
   generateAiBacklog,
@@ -7,11 +12,23 @@ import {
   rejectAiSuggestion,
 } from "@/features/agent/services/aiBacklogService";
 
-export const useAiSuggestions = (projectId?: string, status?: AiSuggestionStatus) => {
+type AiSuggestionsQueryOptions = Omit<
+  UseQueryOptions<AiTaskSuggestion[]>,
+  "queryKey" | "queryFn"
+>;
+
+export const useAiSuggestions = (
+  projectId?: string,
+  status?: AiSuggestionStatus,
+  options?: AiSuggestionsQueryOptions
+) => {
+  const { enabled = true, ...rest } = options ?? {};
+
   return useQuery({
     queryKey: ["aiSuggestions", projectId, status ?? "ALL"],
     queryFn: () => getAiSuggestions(projectId!, status),
-    enabled: !!projectId,
+    enabled: !!projectId && enabled,
+    ...rest,
   });
 };
 

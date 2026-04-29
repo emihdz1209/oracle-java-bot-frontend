@@ -49,16 +49,16 @@ export const sortSuggestions = (list: AiTaskSuggestion[]) =>
     return da - db;
   });
 
+const pad = (n: number) => String(n).padStart(2, "0");
+
+export const toLocalDateTimeInputValue = (date: Date) =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+  `T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
 export const getDefaultFechaLimite = () => {
   const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T17:00`;
+  d.setMinutes(d.getMinutes() + 60);
+  return toLocalDateTimeInputValue(d);
 };
 
-export const getTodayDateValue = () => {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
-
-export const getMinFechaLimite = () => `${getTodayDateValue()}T00:00`;
+export const getMinFechaLimite = () => toLocalDateTimeInputValue(new Date());

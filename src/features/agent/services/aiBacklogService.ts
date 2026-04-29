@@ -4,6 +4,7 @@ import type {
   AiSuggestionStatus,
   ApproveAiSuggestionRequest,
   ApproveAiSuggestionResponse,
+  ClearAiSuggestionsResponse,
   GenerateAiBacklogRequest,
   GenerateAiBacklogResponse,
 } from "@/features/agent/types/aiBacklog";
@@ -66,6 +67,16 @@ export const rejectAiSuggestion = async (aiTaskId: string): Promise<AiTaskSugges
   const sid = ensureHyphenatedUuid(aiTaskId);
   const response = await apiClient.patch<AiTaskSuggestion>(
     `/api/projects/ai/suggestions/${sid}/reject`
+  );
+  return response.data;
+};
+
+export const clearAiSuggestions = async (
+  projectId: string
+): Promise<ClearAiSuggestionsResponse> => {
+  const pid = ensureHyphenatedUuid(projectId);
+  const response = await apiClient.delete<ClearAiSuggestionsResponse>(
+    `/api/projects/${pid}/ai/suggestions`
   );
   return response.data;
 };

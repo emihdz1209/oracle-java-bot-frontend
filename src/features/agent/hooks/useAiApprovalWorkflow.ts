@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 
 import type {
   AiSuggestionStatus,
@@ -11,10 +13,10 @@ import type {
 } from "@/features/agent/types/agentBacklogView";
 import {
   getDefaultFechaLimite,
-  getTodayDateValue,
 } from "@/features/agent/utils/agentBacklogUtils";
 import {
   approveAiSuggestion,
+  clearAiSuggestions,
   rejectAiSuggestion,
 } from "@/features/agent/services/aiBacklogService";
 import { toApiDateTime } from "@/features/tareas/components/tareasModal/tareasModalUtils";
@@ -29,15 +31,14 @@ interface UseAiApprovalWorkflowOptions {
   suggestions: AiTaskSuggestion[];
   priorityOptions: PriorityOption[];
   projectId?: string;
-  refetchSuggestions: () => Promise<{ data?: AiTaskSuggestion[] }>;
 }
 
 export const useAiApprovalWorkflow = ({
   suggestions,
   priorityOptions,
   projectId,
-  refetchSuggestions,
 }: UseAiApprovalWorkflowOptions) => {
+  const queryClient = useQueryClient();
   const [statusMap, setStatusMap] = useState<Record<string, AiSuggestionStatus>>({});
   const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalDraft>>({});
   const [approvalTarget, setApprovalTarget] = useState<ApprovalTarget | null>(null);
@@ -50,6 +51,7 @@ export const useAiApprovalWorkflow = ({
   const [applyError, setApplyError] = useState<string | null>(null);
   const [applySuccess, setApplySuccess] = useState<string | null>(null);
   const [isApplying, setIsApplying] = useState(false);
+  const [didClearSuggestions, setDidClearSuggestions] = useState(false);
 
   useEffect(() => {
     if (!suggestions) {
@@ -89,6 +91,12 @@ export const useAiApprovalWorkflow = ({
       return changed ? next : current;
     });
   }, [suggestions]);
+
+  useEffect(() => {
+    if (suggestions.length > 0) {
+      setDidClearSuggestions(false);
+    }
+  }, [suggestions.length]);
 
   useEffect(() => {
     if (!suggestions) {
@@ -162,9 +170,15 @@ export const useAiApprovalWorkflow = ({
       return;
     }
 
-    const selectedDateValue = approvalForm.fechaLimite.slice(0, 10);
-    if (selectedDateValue < getTodayDateValue()) {
-      setApprovalError("La fecha limite no puede ser anterior al dia de hoy.");
+    const parsedDeadline = new Date(approvalForm.fechaLimite);
+
+    if (Number.isNaN(parsedDeadline.getTime())) {
+      setApprovalError("Fecha limite invalida.");
+      return;
+    }
+
+    if (parsedDeadline.getTime() < Date.now()) {
+      setApprovalError("La fecha limite debe ser posterior al momento actual.");
       return;
     }
 
@@ -257,18 +271,22 @@ export const useAiApprovalWorkflow = ({
         }),
       ]);
 
-      const refreshed = await refetchSuggestions();
-      const refreshedData = refreshed.data ?? [];
-      setStatusMap(() => {
-        const next: Record<string, AiSuggestionStatus> = {};
-        refreshedData.forEach((suggestion) => {
-          next[suggestion.aiTaskId] = suggestion.status ?? "PENDING";
-        });
-        return next;
-      });
+      await clearAiSuggestions(projectId);
+      queryClient.setQueryData(["aiSuggestions", projectId, "ALL"], []);
+      setDidClearSuggestions(true);
 
       setApplySuccess("Sugerencias procesadas correctamente.");
-    } catch {
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiMessage =
+          typeof error.response?.data?.error === "string"
+            ? error.response?.data?.error
+            : undefined;
+
+        setApplyError(apiMessage ?? "No se pudieron procesar las sugerencias. Intenta nuevamente.");
+        return;
+      }
+
       setApplyError("No se pudieron procesar las sugerencias. Intenta nuevamente.");
     } finally {
       setIsApplying(false);
@@ -292,6 +310,7 @@ export const useAiApprovalWorkflow = ({
     applyError,
     applySuccess,
     isApplying,
+    didClearSuggestions,
     pendingChanges,
     openApprovalModal,
     handleCloseApprovalModal,

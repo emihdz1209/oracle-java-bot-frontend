@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Alert, Button, CircularProgress } from "@mui/material";
 
@@ -37,13 +37,23 @@ export const AgentBacklogPage = () => {
   const navigate = useNavigate();
 
   const { data: project, isLoading: projectLoading } = useProyecto(projectId);
+  const [disableSuggestionsQuery, setDisableSuggestionsQuery] = useState(false);
+  const suggestionsQueryOptions = useMemo(
+    () => ({
+      enabled: !disableSuggestionsQuery,
+      refetchOnWindowFocus: !disableSuggestionsQuery,
+      refetchOnReconnect: !disableSuggestionsQuery,
+      refetchOnMount: !disableSuggestionsQuery,
+    }),
+    [disableSuggestionsQuery]
+  );
   const {
     data: suggestionsData,
     isLoading: suggestionsLoading,
     isFetching: suggestionsFetching,
     isError: suggestionsError,
     refetch: refetchSuggestions,
-  } = useAiSuggestions(projectId);
+  } = useAiSuggestions(projectId, undefined, suggestionsQueryOptions);
   const suggestions = suggestionsData ?? EMPTY_SUGGESTIONS;
   const { data: rawPriorities = [], isLoading: prioritiesLoading } = useTaskPriorities();
   const { data: sprints = [], isLoading: sprintsLoading } = useProjectSprints(projectId);
@@ -75,12 +85,6 @@ export const AgentBacklogPage = () => {
     [priorityOptions]
   );
 
-  const { isWaitingForSuggestions } = useAiSuggestionsPolling({
-    suggestionsCount: suggestions.length,
-    isFetching: suggestionsFetching,
-    isError: suggestionsError,
-    refetch: refetchSuggestions,
-  });
   const {
     statusMap,
     approvalMap,
@@ -91,6 +95,7 @@ export const AgentBacklogPage = () => {
     applyError,
     applySuccess,
     isApplying,
+    didClearSuggestions,
     pendingChanges,
     openApprovalModal,
     handleCloseApprovalModal,
@@ -101,7 +106,18 @@ export const AgentBacklogPage = () => {
     suggestions,
     priorityOptions,
     projectId,
-    refetchSuggestions,
+  });
+
+  useEffect(() => {
+    setDisableSuggestionsQuery(didClearSuggestions);
+  }, [didClearSuggestions]);
+
+  const { isWaitingForSuggestions } = useAiSuggestionsPolling({
+    suggestionsCount: suggestions.length,
+    isFetching: suggestionsFetching,
+    isError: suggestionsError,
+    refetch: refetchSuggestions,
+    enabled: !disableSuggestionsQuery,
   });
 
   if (!projectId) {
@@ -153,7 +169,7 @@ export const AgentBacklogPage = () => {
           <Button
             size="small"
             onClick={() => refetchSuggestions()}
-            disabled={suggestionsLoading}
+            disabled={suggestionsLoading || disableSuggestionsQuery}
           >
             Actualizar
           </Button>

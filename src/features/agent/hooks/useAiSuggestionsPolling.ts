@@ -6,6 +6,7 @@ interface UseAiSuggestionsPollingOptions {
   isError: boolean;
   refetch: () => void;
   pollingIntervalMs?: number;
+  enabled?: boolean;
 }
 
 export const useAiSuggestionsPolling = ({
@@ -14,10 +15,16 @@ export const useAiSuggestionsPolling = ({
   isError,
   refetch,
   pollingIntervalMs = 2500,
+  enabled = true,
 }: UseAiSuggestionsPollingOptions) => {
   const [isWaitingForSuggestions, setIsWaitingForSuggestions] = useState(true);
 
   useEffect(() => {
+    if (!enabled) {
+      setIsWaitingForSuggestions(false);
+      return;
+    }
+
     if (isError) {
       setIsWaitingForSuggestions(false);
       return;
@@ -29,10 +36,10 @@ export const useAiSuggestionsPolling = ({
     }
 
     setIsWaitingForSuggestions(true);
-  }, [isError, suggestionsCount]);
+  }, [enabled, isError, suggestionsCount]);
 
   useEffect(() => {
-    if (!isWaitingForSuggestions || isError) {
+    if (!enabled || !isWaitingForSuggestions || isError) {
       return;
     }
 
@@ -45,7 +52,7 @@ export const useAiSuggestionsPolling = ({
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [isWaitingForSuggestions, isError, isFetching, pollingIntervalMs, refetch]);
+  }, [enabled, isWaitingForSuggestions, isError, isFetching, pollingIntervalMs, refetch]);
 
   return { isWaitingForSuggestions };
 };

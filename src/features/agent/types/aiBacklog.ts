@@ -45,3 +45,15 @@ export interface ApproveAiSuggestionResponse {
     tiempoReal: number;
   };
 }
+
+export interface ClearAiSuggestionsResponse {
+  message: string;
+  projectId: string;
+  deletedSuggestions: number;
+}
+
+export interface ClearAiSuggestionsResponse {
+  message: string;
+  projectId: string;
+  deletedSuggestions: number;
+}
