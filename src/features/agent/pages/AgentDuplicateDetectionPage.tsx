@@ -10,6 +10,7 @@ import {
   MenuItem,
   Select,
 } from "@mui/material";
+import { AppModal } from "@/shared/components/AppModal";
 
 import { NavBar } from "@/shared/pages/NavBar";
 import { ROUTES } from "@/app/router/routes";
@@ -150,11 +151,21 @@ export const AgentDuplicateDetectionPage = () => {
   const handleDeleteTask = async (taskId: string, label: "A" | "B", title: string) => {
     if (!projectId) return;
 
-    const confirmDelete = window.confirm(
-      `¿Eliminar la tarea ${label}: ${title}? Esta acción no se puede deshacer.`
+    // Open confirmation modal instead of native confirm
+    setPendingDelete({ taskId, label, title });
+  };
+
+  const [pendingDelete, setPendingDelete] =
+    useState<null | { taskId: string; label: "A" | "B"; title: string }>(
+      null
     );
 
-    if (!confirmDelete) return;
+  const closePendingDelete = () => setPendingDelete(null);
+
+  const performDeleteTask = async () => {
+    if (!pendingDelete || !projectId) return;
+
+    const { taskId } = pendingDelete;
 
     setDeleteError(null);
     setDeletingTaskId(taskId);
@@ -183,6 +194,7 @@ export const AgentDuplicateDetectionPage = () => {
         next.add(normalizeId(taskId));
         return next;
       });
+      closePendingDelete();
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const apiMessage =
@@ -336,6 +348,24 @@ export const AgentDuplicateDetectionPage = () => {
           )}
         </>
       )}
+      <AppModal
+        open={Boolean(pendingDelete)}
+        onClose={closePendingDelete}
+        title="Confirmar eliminación"
+      >
+        <div style={{ width: "100%" }}>
+          <p>
+            ¿Eliminar la tarea {pendingDelete?.label}: <strong>{pendingDelete?.title}</strong>? Esta acción no se puede deshacer.
+          </p>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+            <Button onClick={closePendingDelete} disabled={Boolean(deletingTaskId)}>Cancelar</Button>
+            <Button variant="contained" color="error" onClick={performDeleteTask} disabled={Boolean(deletingTaskId)}>
+              {deletingTaskId ? "Eliminando..." : "Eliminar"}
+            </Button>
+          </div>
+        </div>
+      </AppModal>
     </div>
   );
 };
