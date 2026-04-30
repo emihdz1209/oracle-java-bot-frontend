@@ -27,9 +27,9 @@ interface AgentProjectSelectorModalProps {
   selectedOption: AgentOption | null;
 }
 
-const DEFAULT_HOURS = "8";
-const MAX_HOURS = 200;
-const DEFAULT_THRESHOLD = "0.8";
+const DEFAULT_HOURS = "4";
+const MAX_HOURS = 48;
+const DEFAULT_THRESHOLD = "0.88";
 const MIN_THRESHOLD = 0;
 const MAX_THRESHOLD = 1;
 

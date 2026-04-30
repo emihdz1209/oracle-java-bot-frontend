@@ -52,6 +52,7 @@ interface ProyectoEditFormProps {
   onFileChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteDocument?: (documentId: string) => void;
   isDeletingDocument?: boolean;
+  isUploading?: boolean;
 }
 
 const ProyectoEditForm = ({
@@ -68,6 +69,7 @@ const ProyectoEditForm = ({
   onFileChange,
   onDeleteDocument,
   isDeletingDocument = false,
+  isUploading = false,
 }: ProyectoEditFormProps) => {
   return (
     <form onSubmit={onSubmit} className={styles.editForm}>
@@ -123,14 +125,24 @@ const ProyectoEditForm = ({
           type="button"
           className={styles.uploadBox}
           onClick={() => document.getElementById("project-file-input")?.click()}
+          disabled={isUploading}
         >
           <span className={styles.uploadIconWrap}>
             <img src="/upload.svg" alt="" aria-hidden="true" className={styles.uploadIcon} />
           </span>
-          <p className={styles.uploadPrimaryText}>
-            <strong>Click to upload</strong> or drag files here
-          </p>
-          <p className={styles.uploadSecondaryText}>PDF, images, or docs up to 20MB</p>
+          {isUploading ? (
+            <div className={styles.uploadLoadingState}>
+              <CircularProgress size={26} />
+              <p className={styles.uploadLoadingText}>Uploading file...</p>
+            </div>
+          ) : (
+            <>
+              <p className={styles.uploadPrimaryText}>
+                <strong>Click to upload</strong> or drag files here
+              </p>
+              <p className={styles.uploadSecondaryText}>PDF, images, or docs up to 20MB</p>
+            </>
+          )}
         </button>
 
         {/* No document type field per design; upload triggers automatically on file select */}
@@ -373,6 +385,7 @@ export const ProyectoSideModal = ({
               onFileChange={handleFileChange}
               onDeleteDocument={handleDeleteDocument}
               isDeletingDocument={deleteDocumentMutation.isPending}
+              isUploading={uploadMutation.isPending}
             />
           ) : (
             <p className="task-detail-feedback">Only MANAGERS can edit projects.</p>
