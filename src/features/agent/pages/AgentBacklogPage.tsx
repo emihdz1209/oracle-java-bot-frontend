@@ -120,6 +120,10 @@ export const AgentBacklogPage = () => {
     enabled: !disableSuggestionsQuery,
   });
 
+  const handleBack = () => {
+    navigate(ROUTES.agent);
+  };
+
   if (!projectId) {
     return (
       <div className="App">
@@ -143,19 +147,29 @@ export const AgentBacklogPage = () => {
       <NavBar />
 
       <div className="page-header">
-        <div>
-          <h2>Agent · Generar tareas</h2>
-          <p className="page-subtitle">
-            Revisa las sugerencias, arrastralas y confirma con "Guardar Cambios".
-          </p>
+        <div className={styles.headerContent}>
+          <div className={styles.headerTopRow}>
+            <Button
+              variant="outlined"
+              onClick={handleBack}
+              className={styles.topBackButton}
+              startIcon={(
+                <span
+                  aria-hidden="true"
+                  className={`${styles.buttonIcon} ${styles.arrowBackIcon}`}
+                />
+              )}
+            >
+              Volver a Agent
+            </Button>
+          </div>
+          <div>
+            <h2>Agent · Generar tareas</h2>
+            <p className="page-subtitle">
+              Revisa las sugerencias, arrastralas y confirma con "Guardar Cambios".
+            </p>
+          </div>
         </div>
-        <Button
-          className="AddButton"
-          onClick={handleApplyDecisions}
-          disabled={isApplying || suggestionsLoading || pendingChanges === 0}
-        >
-          {isApplying ? "Procesando..." : "Guardar Cambios"}
-        </Button>
       </div>
 
       <div className={styles.introBar}>
@@ -167,18 +181,11 @@ export const AgentBacklogPage = () => {
         </div>
         <div className={styles.introActions}>
           <Button
-            size="small"
-            onClick={() => refetchSuggestions()}
-            disabled={suggestionsLoading || disableSuggestionsQuery}
+            className="AddButton"
+            onClick={handleApplyDecisions}
+            disabled={isApplying || suggestionsLoading || pendingChanges === 0}
           >
-            Actualizar
-          </Button>
-          <Button
-            size="small"
-            onClick={() => navigate(ROUTES.agent)}
-            variant="outlined"
-          >
-            Volver
+            {isApplying ? "Procesando..." : "Guardar Cambios"}
           </Button>
         </div>
       </div>
