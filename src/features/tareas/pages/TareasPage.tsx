@@ -18,6 +18,7 @@ import {
   useUpdateTareaStatus,
   useDeleteTarea,
 } from "@/features/tareas/hooks/useTareas";
+import { useTareasSprintFilter } from "@/features/tareas/hooks/useTareasSprintFilter";
 import type { CreateTareaRequest, Tarea } from "@/features/tareas/types/tarea";
 import { CreateTareaForm } from "@/features/tareas/components/CreateTareaForm";
 import { TareaList } from "@/features/tareas/components/TareaList";
@@ -119,6 +120,11 @@ export const TareasPage = () => {
     setSelectedTaskId(null);
   };
 
+  const handleSprintSelectionChange = (event: SelectChangeEvent<string[]>) => {
+    handleSprintChange(event);
+    setSelectedTaskId(null);
+  };
+
   const selectAll = () => {
     setSelectedIds(allProjects.map((p) => p.projectId));
     setSelectedTaskId(null);
@@ -134,6 +140,16 @@ export const TareasPage = () => {
 
   // Fetch tasks for all selected projects in parallel
   const { data: allTareas, isLoading: loadingTareas } = useMultiProjectTareas(selectedIds);
+  const {
+    sprints,
+    sprintNameById,
+    selectedSprintIds,
+    filteredTareas,
+    isLoading: loadingSprints,
+    allSprintsSelected,
+    allSprintsValue,
+    handleSprintChange,
+  } = useTareasSprintFilter({ projectIds: selectedIds, tareas: allTareas });
 
   // Projects currently visible in the filter — used to populate the create form
   const selectedProjects = allProjects.filter((p) => selectedIds.includes(p.projectId));
@@ -194,10 +210,21 @@ export const TareasPage = () => {
   const handleStatusChange = (tarea: Tarea, newEstadoId: number) =>
     statusMutation.mutate({ taskId: tarea.taskId, estadoId: newEstadoId });
 
+  useEffect(() => {
+    if (!selectedTaskId) {
+      return;
+    }
+
+    const exists = filteredTareas.some((tarea) => tarea.taskId === selectedTaskId);
+    if (!exists) {
+      setSelectedTaskId(null);
+    }
+  }, [filteredTareas, selectedTaskId]);
+
   // Derive the projectId from the selected task so the modal can use it
   const selectedTaskProjectId =
     selectedTaskId != null
-      ? allTareas.find((t) => t.taskId === selectedTaskId)?.projectId
+      ? filteredTareas.find((t) => t.taskId === selectedTaskId)?.projectId
       : undefined;
 
   const isSideModalOpen = Boolean(selectedTaskId);
@@ -268,9 +295,56 @@ export const TareasPage = () => {
                 </>
               )}
 
+              <span className="section-label" style={{ margin: 0, marginLeft: 16 }}>
+                Filtrar por Sprints
+              </span>
+
+              {loadingSprints && selectedIds.length > 0 ? (
+                <CircularProgress size={20} />
+              ) : (
+                <FormControl size="small" style={{ minWidth: 260, maxWidth: 420 }}>
+                  <Select
+                    multiple
+                    value={selectedSprintIds}
+                    onChange={handleSprintSelectionChange}
+                    renderValue={(sel) => {
+                      if (sprints.length === 0) {
+                        return "Sin sprints";
+                      }
+
+                      if (allSprintsSelected) {
+                        return "Todos los sprints";
+                      }
+
+                      if (sel.length === 0) {
+                        return "Seleccionar sprints";
+                      }
+
+                      return sel.map((id) => sprintNameById[id] ?? id).join(", ");
+                    }}
+                    displayEmpty
+                    disabled={selectedIds.length === 0 || sprints.length === 0}
+                  >
+                    <MenuItem value={allSprintsValue} disabled={sprints.length === 0}>
+                      <Checkbox checked={allSprintsSelected} size="small" />
+                      <ListItemText primary="Todos los sprints" />
+                    </MenuItem>
+                    {sprints.map((sprint) => (
+                      <MenuItem key={sprint.sprintId} value={sprint.sprintId}>
+                        <Checkbox
+                          checked={selectedSprintIds.includes(sprint.sprintId)}
+                          size="small"
+                        />
+                        <ListItemText primary={sprint.nombre} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+
               {selectedIds.length > 0 && (
                 <span className="filter-count">
-                  {allTareas.length} tarea{allTareas.length !== 1 ? "s" : ""}
+                  {filteredTareas.length} tarea{filteredTareas.length !== 1 ? "s" : ""}
                 </span>
               )}
             </div>
@@ -284,7 +358,7 @@ export const TareasPage = () => {
               </p>
             ) : (
               <TareaList
-                tareas={allTareas}
+                tareas={filteredTareas}
                 onDelete={handleDelete}
                 onStatusChange={handleStatusChange}
                 onOpenDetails={handleOpenTaskDetails}
