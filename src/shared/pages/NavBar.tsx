@@ -8,6 +8,7 @@ import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 
 const NAV_ITEMS = [
   { path: ROUTES.dashboard, label: "Inicio",    icon: <DashboardOutlinedIcon /> },
@@ -15,6 +16,7 @@ const NAV_ITEMS = [
   { path: ROUTES.agent,     label: "Agent",     icon: <SmartToyOutlinedIcon /> },
   { path: ROUTES.proyectos, label: "Proyectos", icon: <AccountTreeOutlinedIcon /> },
   { path: ROUTES.equipos,   label: "Equipos",   icon: <GroupOutlinedIcon /> },
+  { path: ROUTES.users,     label: "Usuarios",  icon: <PersonOutlineOutlinedIcon /> },
 ];
 
 export const NavBar = () => {

@@ -15,6 +15,8 @@ import { AgentPage } from "@/features/agent/pages/AgentPage";
 import { AgentBacklogPage } from "@/features/agent/pages/AgentBacklogPage";
 import { AgentDuplicateDetectionPage } from "@/features/agent/pages/AgentDuplicateDetectionPage";
 import { CreateTaskPriorityPage } from "@/features/taskPriorities/taskPriorities/pages/CreateTaskPriorityPage";
+import { CreateUserPage } from "@/features/users/pages/CreateUserPage";
+import { UserSkillExplorerPage } from "@/features/users/pages/UserSkillExplorerPage";
 
 import { ProtectedRoute } from "./ProtectedRoute";
 import { NotFoundPage }   from "@/shared/pages/NotFoundPage";
@@ -86,6 +88,17 @@ export const AppRouter = () => {
         <Route
           path={ROUTES.priorities}
           element={<ProtectedRoute><CreateTaskPriorityPage /></ProtectedRoute>}
+        />
+
+        {/* 🔐 Usuarios */}
+        <Route
+          path={ROUTES.users}
+          element={<ProtectedRoute><CreateUserPage /></ProtectedRoute>}
+        />
+
+        <Route
+          path={ROUTES.usersGraphql}
+          element={<ProtectedRoute><UserSkillExplorerPage /></ProtectedRoute>}
         />
 
         {/* ❌ Not found */}

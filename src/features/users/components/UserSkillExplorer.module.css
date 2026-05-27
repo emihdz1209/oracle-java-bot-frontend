@@ -1,0 +1,60 @@
+.page {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.intro {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.92rem;
+}
+
+.controls {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(220px, 280px);
+  gap: 12px;
+  align-items: center;
+}
+
+.resultCount {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.86rem;
+}
+
+.loadingText {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.errorText {
+  margin: 0;
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.emptyState {
+  margin: 0;
+  color: var(--text-2);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-md);
+  padding: 18px;
+  background: var(--surface-2);
+}
+
+.grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  padding-bottom: 10px;
+}
+
+@media (max-width: 880px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
+}

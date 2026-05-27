@@ -7,6 +7,8 @@ export const ROUTES = {
   agentBacklog: "/agent/backlog",
   agentDuplicateAnalysis: "/agent/duplicate-analysis",
   priorities: "/priorities",
+  users: "/usuarios",
+  usersGraphql: "/users/graphql",
   tareas:     "/tareas",
   proyectos:  "/proyectos",
   proyectoDashboard: "/proyectos/:projectId",

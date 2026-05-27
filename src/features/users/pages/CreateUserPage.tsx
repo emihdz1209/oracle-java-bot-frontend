@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { Button, CircularProgress } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/app/router/routes";
 import { useUsers } from "@/features/users/hooks/useUsers";
 import { CreateUserForm } from "@/features/users/components/CreateUserForm";
 import { AppModal } from "@/shared/components/AppModal";
 import { NavBar } from "@/shared/pages/NavBar";
 
 export const CreateUserPage = () => {
+  const navigate = useNavigate();
   const { data: users, isLoading } = useUsers();
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -18,13 +22,23 @@ export const CreateUserPage = () => {
           <h2>Usuarios</h2>
           <p className="page-subtitle">Gestión de usuarios del sistema</p>
         </div>
-        <Button
-          className="AddButton"
-          startIcon={<AddIcon />}
-          onClick={() => setModalOpen(true)}
-        >
-          Nuevo usuario
-        </Button>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <Button
+            variant="outlined"
+            startIcon={<HubOutlinedIcon />}
+            onClick={() => navigate(ROUTES.usersGraphql)}
+          >
+            Perfiles técnicos
+          </Button>
+
+          <Button
+            className="AddButton"
+            startIcon={<AddIcon />}
+            onClick={() => setModalOpen(true)}
+          >
+            Nuevo usuario
+          </Button>
+        </div>
       </div>
 
       <div style={{ width: "100%" }}>
