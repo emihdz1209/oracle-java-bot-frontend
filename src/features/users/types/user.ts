@@ -6,6 +6,13 @@ export interface CreateUserRequest {
   telegramId: string;
 }
 
+export interface UpdateUserRequest extends CreateUserRequest {
+  rolId: number;
+  estadoId: number;
+  managerId: string | null;
+  telegramChatId?: string | null;
+}
+
 export interface CreateUserResponse {
   message: string;
   telegramId: string;
@@ -22,4 +29,5 @@ export interface User {
   rolId: number;
   estadoId: number;
   managerId: string | null;
+  telegramChatId?: string | null;
 }

@@ -88,10 +88,28 @@
   --progress-color: #16a34a;
 }
 
+.headerActions {
+  justify-self: end;
+  display: inline-grid;
+  justify-items: stretch;
+  gap: 8px;
+}
+
 .editButton {
   justify-self: end;
   text-transform: none !important;
   white-space: nowrap;
+}
+
+.createSprintButton {
+  text-transform: none !important;
+  white-space: nowrap;
+  width: 100% !important;
+  min-width: 0 !important;
+  padding: 5px 15px !important;
+  border: 1px solid transparent !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
 }
 
 .buttonIcon {
@@ -115,6 +133,11 @@
 .editProjectIcon {
   -webkit-mask-image: url("/edit.svg");
   mask-image: url("/edit.svg");
+}
+
+.createSprintIcon {
+  -webkit-mask-image: url("/circle-plus.svg");
+  mask-image: url("/circle-plus.svg");
 }
 
 .loadingState {
@@ -157,8 +180,14 @@
   }
 
   .topBackButton,
-  .editButton {
+  .headerActions,
+  .editButton,
+  .createSprintButton {
     justify-self: auto;
     width: 100%;
+  }
+
+  .headerActions {
+    flex-direction: column;
   }
 }

@@ -4,6 +4,7 @@ import { apiClient } from "@/shared/api/apiClient";
 import type {
   Proyecto,
   CreateProyectoRequest,
+  CreateSprintRequest,
   Sprint,
   SprintKpis,
   DeveloperPerformance,
@@ -93,6 +94,14 @@ export const deleteProjectMember = async (projectId: string, userId: string): Pr
 
 export const getProjectSprints = async (projectId: string): Promise<Sprint[]> => {
   const response = await apiClient.get<Sprint[]>(`/api/projects/${projectId}/sprints`);
+  return response.data;
+};
+
+export const createSprint = async (
+  projectId: string,
+  sprint: CreateSprintRequest
+): Promise<Sprint> => {
+  const response = await apiClient.post<Sprint>(`/api/projects/${projectId}/sprints`, sprint);
   return response.data;
 };
 

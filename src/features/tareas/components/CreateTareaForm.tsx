@@ -8,6 +8,7 @@ import {
   FormControl,
   CircularProgress,
 } from "@mui/material";
+import { useProjectSprints } from "@/features/proyectos/hooks/useProyectos";
 
 interface Prioridad {
   prioridadId: number;
@@ -26,6 +27,7 @@ interface Props {
     descripcion: string;
     fechaLimite: string;
     prioridadId: number;
+    sprintId: string;
     tiempoEstimado: number | null;
   }) => void;
   isPending: boolean;
@@ -54,6 +56,7 @@ const EMPTY = {
   titulo: "",
   descripcion: "",
   fechaLimite: "",
+  sprintId: "",
   tiempoEstimado: "",
   prioridadId: "",
 };
@@ -81,6 +84,7 @@ export const CreateTareaForm = ({
   }));
   const [estimatedHoursError, setEstimatedHoursError] = useState<string | null>(null);
   const [deadlineError, setDeadlineError] = useState<string | null>(null);
+  const { data: sprints = [], isLoading: sprintsLoading } = useProjectSprints(form.projectId);
 
   const clearFeedback = () => {
     if (estimatedHoursError) {
@@ -129,7 +133,7 @@ export const CreateTareaForm = ({
     }
 
     setEstimatedHoursError(null);
-  setDeadlineError(null);
+    setDeadlineError(null);
     onClearSubmitError?.();
 
     onSubmit({
@@ -138,6 +142,7 @@ export const CreateTareaForm = ({
       descripcion: form.descripcion,
       fechaLimite: form.fechaLimite,
       prioridadId: parseInt(form.prioridadId, 10),
+      sprintId: form.sprintId,
       tiempoEstimado: parsedTiempoEstimado,
     });
     setForm({
@@ -161,7 +166,7 @@ export const CreateTareaForm = ({
           value={form.projectId}
           onChange={(e) => {
             clearFeedback();
-            setForm({ ...form, projectId: e.target.value as string });
+            setForm({ ...form, projectId: e.target.value as string, sprintId: "" });
           }}
           label="Proyecto"
           disabled={projects.length === 1}
@@ -214,6 +219,29 @@ export const CreateTareaForm = ({
         }}
       />
       <div className="modal-form-row">
+        <FormControl size="small" disabled={!form.projectId || sprintsLoading}>
+          <InputLabel>Sprint</InputLabel>
+          <Select
+            name="sprintId"
+            value={form.sprintId}
+            onChange={(e) => {
+              clearFeedback();
+              setForm({ ...form, sprintId: e.target.value as string });
+            }}
+            label="Sprint"
+          >
+            <MenuItem value="">Sin sprint</MenuItem>
+            {sprintsLoading && (
+              <MenuItem value="" disabled>Cargando sprints...</MenuItem>
+            )}
+            {sprints.map((sprint) => (
+              <MenuItem key={sprint.sprintId} value={sprint.sprintId}>
+                {sprint.nombre}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
         <TextField
           name="tiempoEstimado"
           label="Tiempo Estimado (hrs)"

@@ -4,11 +4,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ROUTES } from "@/app/router/routes";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useEquipos } from "@/features/equipos/hooks/useEquipos";
+import { CreateSprintForm } from "@/features/proyectos/components/CreateSprintForm";
 import { ProyectoSideModal } from "@/features/proyectos/components/ProyectoSideModal";
 import { ProyectosDashboardSection } from "@/features/proyectos/components/ProyectosDashboardSection";
-import { useProyecto } from "@/features/proyectos/hooks/useProyectos";
+import { useCreateSprint, useProyecto } from "@/features/proyectos/hooks/useProyectos";
+import type { CreateSprintRequest } from "@/features/proyectos/types/proyecto";
 import styles from "@/features/proyectos/styles/ProyectosDashboardPage.module.css";
 import { NavBar } from "@/shared/pages/NavBar";
+import { AppModal, useAppModal } from "@/shared/components/AppModal";
 
 const progressToneClass = (percentage: number) =>
   percentage >= 75
@@ -22,9 +25,12 @@ export const ProyectoDashboardPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const { auth } = useAuth();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [sprintError, setSprintError] = useState<string | null>(null);
+  const createSprintModal = useAppModal();
 
   const { data: proyecto, isLoading, isError } = useProyecto(projectId);
   const { data: equipos = [] } = useEquipos();
+  const createSprintMutation = useCreateSprint(proyecto?.projectId);
   const canManageProjects = auth.user?.role === "MANAGER";
 
   const teamName = proyecto
@@ -47,6 +53,34 @@ export const ProyectoDashboardPage = () => {
 
   const handleProjectDeleted = () => {
     navigate(ROUTES.proyectos);
+  };
+
+  const handleOpenCreateSprint = () => {
+    setSprintError(null);
+    createSprintModal.openModal();
+  };
+
+  const handleCloseCreateSprint = () => {
+    setSprintError(null);
+    createSprintModal.closeModal();
+  };
+
+  const handleCreateSprint = (sprint: CreateSprintRequest) => {
+    if (!proyecto) {
+      return;
+    }
+
+    setSprintError(null);
+    createSprintMutation.mutate(sprint, {
+      onSuccess: () => {
+        handleCloseCreateSprint();
+      },
+      onError: () => {
+        setSprintError(
+          "No se pudo crear el sprint. Verifica que las fechas no se traslapen con otro sprint."
+        );
+      },
+    });
   };
 
   return (
@@ -97,20 +131,36 @@ export const ProyectoDashboardPage = () => {
           <div className={styles.headerProgressPlaceholder} />
         )}
 
-        <Button
-          variant="outlined"
-          onClick={handleOpenEdit}
-          className={styles.editButton}
-          disabled={!proyecto || !canManageProjects}
-          startIcon={(
-            <span
-              aria-hidden="true"
-              className={`${styles.buttonIcon} ${styles.editProjectIcon}`}
-            />
-          )}
-        >
-          Editar proyecto
-        </Button>
+        <div className={styles.headerActions}>
+          <Button
+            variant="contained"
+            onClick={handleOpenCreateSprint}
+            className={styles.createSprintButton}
+            disabled={!proyecto || !canManageProjects}
+            startIcon={(
+              <span
+                aria-hidden="true"
+                className={`${styles.buttonIcon} ${styles.createSprintIcon}`}
+              />
+            )}
+          >
+            Nuevo sprint
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={handleOpenEdit}
+            className={styles.editButton}
+            disabled={!proyecto || !canManageProjects}
+            startIcon={(
+              <span
+                aria-hidden="true"
+                className={`${styles.buttonIcon} ${styles.editProjectIcon}`}
+              />
+            )}
+          >
+            Editar proyecto
+          </Button>
+        </div>
       </div>
 
       <div className={`tareas-layout ${isSideModalOpen ? "tareas-layout--with-panel" : ""}`}>
@@ -145,6 +195,19 @@ export const ProyectoDashboardPage = () => {
           />
         )}
       </div>
+
+      <AppModal
+        open={Boolean(proyecto) && createSprintModal.isOpen}
+        onClose={handleCloseCreateSprint}
+        title="Nuevo sprint                            "
+      >
+        <CreateSprintForm
+          onSubmit={handleCreateSprint}
+          isPending={createSprintMutation.isPending}
+          submitError={sprintError}
+          onClearSubmitError={() => setSprintError(null)}
+        />
+      </AppModal>
     </div>
   );
 };

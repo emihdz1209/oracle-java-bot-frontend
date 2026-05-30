@@ -175,6 +175,7 @@ export const TareasPage = () => {
     descripcion: string;
     fechaLimite: string;
     prioridadId: number;
+    sprintId: string;
     tiempoEstimado: number | null;
   }) => {
     const payload: CreateTareaRequest = {
@@ -182,6 +183,7 @@ export const TareasPage = () => {
       descripcion: data.descripcion,
       fechaLimite: data.fechaLimite,
       prioridadId: data.prioridadId,
+      ...(data.sprintId && { sprintId: data.sprintId }),
       ...(data.tiempoEstimado !== null && { tiempoEstimado: data.tiempoEstimado }),
     };
 

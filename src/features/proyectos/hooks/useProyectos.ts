@@ -10,6 +10,7 @@ import {
   getProjectMembers,
   deleteProjectMember,
   getProjectSprints,
+  createSprint,
   getSprintKpis,
   getProjectProgress,
   getDeveloperPerformance,
@@ -19,6 +20,7 @@ import {
 } from "@/features/proyectos/services/proyectoService";
 import type {
   CreateProyectoRequest,
+  CreateSprintRequest,
   Proyecto,
   Sprint,
 } from "@/features/proyectos/types/proyecto";
@@ -105,6 +107,18 @@ export const useProjectSprints = (projectId?: string) => {
     queryKey: ["sprints", projectId],
     queryFn: () => getProjectSprints(projectId!),
     enabled: !!projectId,
+  });
+};
+
+export const useCreateSprint = (projectId?: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sprint: CreateSprintRequest) => createSprint(projectId!, sprint),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sprints", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projectProgress", projectId] });
+    },
   });
 };
 

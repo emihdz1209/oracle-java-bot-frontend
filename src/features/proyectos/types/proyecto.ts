@@ -23,6 +23,12 @@ export interface Sprint {
   projectId: string;
 }
 
+export interface CreateSprintRequest {
+  nombre: string;
+  fechaInicio: string;
+  fechaFin: string;
+}
+
 export interface SprintKpis {
   totalTareas: number;
   tareasCompletadas: number;
