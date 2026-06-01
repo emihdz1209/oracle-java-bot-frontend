@@ -186,7 +186,7 @@ export const AgentProjectSelectorModal = ({
           {isGenerateTasksOption
             ? "Selecciona un equipo, un proyecto y define las horas disponibles para iniciar la generacion."
             : isDuplicateAnalysisOption
-              ? "Selecciona un equipo, un proyecto y define el threshold de similitud para ejecutar los 3 motores de deteccion."
+              ? "Selecciona un equipo, un proyecto y define el threshold de similitud para ejecutar Oracle AI Vector Search."
               : "Selecciona un equipo para cargar sus proyectos."}
         </p>
 
@@ -299,8 +299,8 @@ export const AgentProjectSelectorModal = ({
           </Alert>
         ) : isDuplicateAnalysisOption ? (
           <Alert severity="info" className={styles.placeholderAlert}>
-            Se ejecutaran 3 motores de deteccion (LLM, Semantico, Vectorial) para
-            comparar resultados. El proceso incluye la preparacion de embeddings.
+            Se ejecutara Oracle AI Vector Search para detectar tareas duplicadas.
+            El proceso incluye la preparacion y confirmacion del indice vectorial.
             {selectedTeamName ? ` Equipo: ${selectedTeamName}.` : ""}
             {selectedProjectName ? ` Proyecto: ${selectedProjectName}.` : ""}
           </Alert>
