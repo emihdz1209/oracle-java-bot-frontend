@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CircularProgress,
   Button,
@@ -19,7 +19,11 @@ import {
   useDeleteTarea,
 } from "@/features/tareas/hooks/useTareas";
 import { useTareasSprintFilter } from "@/features/tareas/hooks/useTareasSprintFilter";
-import type { CreateTareaRequest, Tarea } from "@/features/tareas/types/tarea";
+import type {
+  CreateTareaRequest,
+  Tarea,
+  TareaResponsable,
+} from "@/features/tareas/types/tarea";
 import { CreateTareaForm } from "@/features/tareas/components/CreateTareaForm";
 import { TareaList } from "@/features/tareas/components/TareaList";
 import { TareasModal } from "@/features/tareas/components/TareasModal";
@@ -33,6 +37,18 @@ const PRIORIDADES = [
 ];
 
 const PROJECT_SELECTION_STORAGE_PREFIX = "tareas.selectedProjectIds";
+const ALL_DEVELOPERS_VALUE = "__ALL_DEVELOPERS__";
+
+const getDeveloperKey = (responsable: TareaResponsable) => {
+  const userId = responsable.userId?.trim();
+
+  if (userId) {
+    return `id:${userId.replace(/-/g, "").toLowerCase()}`;
+  }
+
+  const nombre = responsable.nombre?.trim().toLocaleLowerCase("es-MX");
+  return nombre ? `nombre:${nombre}` : null;
+};
 
 const getProjectSelectionStorageKey = (userId?: string) =>
   `${PROJECT_SELECTION_STORAGE_PREFIX}.${userId || "anonymous"}`;
@@ -76,6 +92,7 @@ export const TareasPage = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [excludedDeveloperKeys, setExcludedDeveloperKeys] = useState<string[]>([]);
   const [createError, setCreateError] = useState<string | null>(null);
   const createModal = useAppModal();
 
@@ -83,6 +100,7 @@ export const TareasPage = () => {
     setInitialized(false);
     setSelectedIds([]);
     setSelectedTaskId(null);
+    setExcludedDeveloperKeys([]);
   }, [storageKey]);
 
   // Initialize selected projects from persisted selection; fallback to all projects.
@@ -118,6 +136,7 @@ export const TareasPage = () => {
     const value = event.target.value;
     setSelectedIds(typeof value === "string" ? value.split(",") : value);
     setSelectedTaskId(null);
+    setExcludedDeveloperKeys([]);
   };
 
   const handleSprintSelectionChange = (event: SelectChangeEvent<string[]>) => {
@@ -128,11 +147,13 @@ export const TareasPage = () => {
   const selectAll = () => {
     setSelectedIds(allProjects.map((p) => p.projectId));
     setSelectedTaskId(null);
+    setExcludedDeveloperKeys([]);
   };
 
   const unselectAll = () => {
     setSelectedIds([]);
     setSelectedTaskId(null);
+    setExcludedDeveloperKeys([]);
   };
 
   const nameMap: Record<string, string> = {};
@@ -150,6 +171,69 @@ export const TareasPage = () => {
     allSprintsValue,
     handleSprintChange,
   } = useTareasSprintFilter({ projectIds: selectedIds, tareas: allTareas });
+
+  const developers = useMemo(() => {
+    const byKey = new Map<string, { key: string; nombre: string }>();
+
+    allTareas.forEach((tarea) => {
+      (tarea.responsables ?? []).forEach((responsable) => {
+        const key = getDeveloperKey(responsable);
+        const nombre = responsable.nombre?.trim() || responsable.userId?.trim();
+
+        if (key && nombre && !byKey.has(key)) {
+          byKey.set(key, { key, nombre });
+        }
+      });
+    });
+
+    return Array.from(byKey.values()).sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
+    );
+  }, [allTareas]);
+
+  const allDeveloperKeys = developers.map((developer) => developer.key);
+  const developerNameByKey = Object.fromEntries(
+    developers.map((developer) => [developer.key, developer.nombre])
+  );
+  const selectedDeveloperKeys = allDeveloperKeys.filter(
+    (key) => !excludedDeveloperKeys.includes(key)
+  );
+  const allDevelopersSelected =
+    allDeveloperKeys.length > 0 && selectedDeveloperKeys.length === allDeveloperKeys.length;
+
+  const handleDeveloperSelectionChange = (event: SelectChangeEvent<string[]>) => {
+    const value = event.target.value;
+    const nextSelected = typeof value === "string" ? value.split(",") : value;
+
+    if (nextSelected.includes(ALL_DEVELOPERS_VALUE)) {
+      setExcludedDeveloperKeys(allDevelopersSelected ? allDeveloperKeys : []);
+      setSelectedTaskId(null);
+      return;
+    }
+
+    const selected = new Set(nextSelected);
+    setExcludedDeveloperKeys(allDeveloperKeys.filter((key) => !selected.has(key)));
+    setSelectedTaskId(null);
+  };
+
+  const developerFilteredTareas = useMemo(() => {
+    if (developers.length === 0 || allDevelopersSelected) {
+      return filteredTareas;
+    }
+
+    if (selectedDeveloperKeys.length === 0) {
+      return [];
+    }
+
+    const selected = new Set(selectedDeveloperKeys);
+
+    return filteredTareas.filter((tarea) =>
+      (tarea.responsables ?? []).some((responsable) => {
+        const key = getDeveloperKey(responsable);
+        return key ? selected.has(key) : false;
+      })
+    );
+  }, [allDevelopersSelected, developers.length, filteredTareas, selectedDeveloperKeys]);
 
   // Projects currently visible in the filter — used to populate the create form
   const selectedProjects = allProjects.filter((p) => selectedIds.includes(p.projectId));
@@ -217,16 +301,16 @@ export const TareasPage = () => {
       return;
     }
 
-    const exists = filteredTareas.some((tarea) => tarea.taskId === selectedTaskId);
+    const exists = developerFilteredTareas.some((tarea) => tarea.taskId === selectedTaskId);
     if (!exists) {
       setSelectedTaskId(null);
     }
-  }, [filteredTareas, selectedTaskId]);
+  }, [developerFilteredTareas, selectedTaskId]);
 
   // Derive the projectId from the selected task so the modal can use it
   const selectedTaskProjectId =
     selectedTaskId != null
-      ? filteredTareas.find((t) => t.taskId === selectedTaskId)?.projectId
+      ? developerFilteredTareas.find((t) => t.taskId === selectedTaskId)?.projectId
       : undefined;
 
   const isSideModalOpen = Boolean(selectedTaskId);
@@ -262,7 +346,7 @@ export const TareasPage = () => {
                 <CircularProgress size={20} />
               ) : (
                 <>
-                  <FormControl size="small" style={{ minWidth: 280, maxWidth: 480 }}>
+                  <FormControl size="small" style={{ width: 280 }}>
                     <Select
                       multiple
                       value={selectedIds}
@@ -298,13 +382,13 @@ export const TareasPage = () => {
               )}
 
               <span className="section-label" style={{ margin: 0, marginLeft: 16 }}>
-                Filtrar por Sprints
+                Sprints
               </span>
 
               {loadingSprints && selectedIds.length > 0 ? (
                 <CircularProgress size={20} />
               ) : (
-                <FormControl size="small" style={{ minWidth: 260, maxWidth: 420 }}>
+                <FormControl size="small" style={{ width: 260 }}>
                   <Select
                     multiple
                     value={selectedSprintIds}
@@ -344,11 +428,57 @@ export const TareasPage = () => {
                 </FormControl>
               )}
 
-              {selectedIds.length > 0 && (
-                <span className="filter-count">
-                  {filteredTareas.length} tarea{filteredTareas.length !== 1 ? "s" : ""}
+              <div className="developer-filter-row">
+                <span className="section-label" style={{ margin: 0 }}>
+                  Developers
                 </span>
-              )}
+
+                <FormControl size="small" style={{ width: 280 }}>
+                  <Select
+                    multiple
+                    value={selectedDeveloperKeys}
+                    onChange={handleDeveloperSelectionChange}
+                    renderValue={(sel) => {
+                      if (developers.length === 0) {
+                        return "Sin developers";
+                      }
+
+                      if (allDevelopersSelected) {
+                        return "Todos los developers";
+                      }
+
+                      if (sel.length === 0) {
+                        return "Ningún developer";
+                      }
+
+                      return sel.map((key) => developerNameByKey[key] ?? key).join(", ");
+                    }}
+                    displayEmpty
+                    disabled={selectedIds.length === 0 || developers.length === 0}
+                  >
+                    <MenuItem value={ALL_DEVELOPERS_VALUE} disabled={developers.length === 0}>
+                      <Checkbox checked={allDevelopersSelected} size="small" />
+                      <ListItemText primary="Seleccionar todos" />
+                    </MenuItem>
+                    {developers.map((developer) => (
+                      <MenuItem key={developer.key} value={developer.key}>
+                        <Checkbox
+                          checked={selectedDeveloperKeys.includes(developer.key)}
+                          size="small"
+                        />
+                        <ListItemText primary={developer.nombre} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                {selectedIds.length > 0 && (
+                  <span className="filter-count">
+                    {developerFilteredTareas.length} tarea
+                    {developerFilteredTareas.length !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Kanban */}
@@ -360,7 +490,7 @@ export const TareasPage = () => {
               </p>
             ) : (
               <TareaList
-                tareas={filteredTareas}
+                tareas={developerFilteredTareas}
                 onDelete={handleDelete}
                 onStatusChange={handleStatusChange}
                 onOpenDetails={handleOpenTaskDetails}

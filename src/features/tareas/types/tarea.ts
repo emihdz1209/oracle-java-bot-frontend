@@ -12,6 +12,12 @@ export interface Tarea {
   sprintNombre: string | null;
   tiempoEstimado: number | null;
   tiempoReal: number | null;
+  responsables?: TareaResponsable[];
+}
+
+export interface TareaResponsable {
+  nombre: string;
+  userId?: string;
 }
 
 export interface TaskAssignment {

@@ -228,13 +228,25 @@ table tr:hover td {
 .filter-bar {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: 12px;
   width: 100%;
   margin-bottom: 16px;
+  overflow-x: auto;
 }
 .filter-count {
   font-size: 0.78rem;
   color: var(--text-3);
+  white-space: nowrap;
+}
+.developer-filter-row {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 12px;
+}
+.filter-bar .section-label {
+  white-space: nowrap;
 }
 
 /* ── Page Section ──────────────────────────────────────────────── */
