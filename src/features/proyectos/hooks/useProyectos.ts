@@ -11,12 +11,14 @@ import {
   deleteProjectMember,
   getProjectSprints,
   createSprint,
+  updateSprint,
   getSprintKpis,
   getProjectProgress,
   getDeveloperPerformance,
   getProjectDocuments,
   uploadProjectDocument,
   deleteProjectDocument,
+  sortSprintsBySchedule,
 } from "@/features/proyectos/services/proyectoService";
 import type {
   CreateProyectoRequest,
@@ -118,6 +120,31 @@ export const useCreateSprint = (projectId?: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sprints", projectId] });
       queryClient.invalidateQueries({ queryKey: ["projectProgress", projectId] });
+    },
+  });
+};
+
+export const useUpdateSprint = (projectId?: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ sprintId, data }: { sprintId: string; data: CreateSprintRequest }) =>
+      updateSprint(sprintId, data),
+    onSuccess: (updatedSprint, { sprintId }) => {
+      queryClient.setQueryData<Sprint[]>(["sprints", projectId], (current) => {
+        if (!current) return current;
+
+        return sortSprintsBySchedule(
+          current.map((sprint) =>
+            sprint.sprintId === sprintId ? { ...sprint, ...updatedSprint } : sprint
+          )
+        );
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["sprints", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["sprintKpis"] });
+      queryClient.invalidateQueries({ queryKey: ["projectProgress", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["developerPerformance", projectId] });
     },
   });
 };

@@ -94,7 +94,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
 
     const estimationAccuracy =
         selectedKpis && selectedKpis.totalRealHrs > 0
-        ? (selectedKpis.totalEstimadoHrs / selectedKpis.totalRealHrs).toFixed(2)
+        ? selectedKpis.totalEstimadoHrs / selectedKpis.totalRealHrs
         : null;
 
     // ── Derived KPI values — Row 2 (sprint-scoped) ──────────────────
@@ -378,26 +378,30 @@ export const ProjectDashboard = ({ projectId }: Props) => {
 
         {/* KPI Row 1: project-level */}
         <div className={styles.kpiGridPrimary}>
-            <KpiCard label="Progreso General" value={`${Math.round(progressValue)}%`} tone="blue" />
+            <KpiCard
+            label="Progreso General"
+            value={`${Math.round(progressValue)}%`}
+            tone={getPercentKpiTone(progressValue)}
+            />
             <KpiCard
             label="Sprint Completion"
             value={completionRate !== null ? `${completionRate}%` : "—"}
-            tone="green"
+            tone={getPercentKpiTone(completionRate)}
             />
             <KpiCard
             label="Entrega a Tiempo"
             value={onTimeRate !== null ? `${onTimeRate}%` : "—"}
-            tone="orange"
+            tone={getPercentKpiTone(onTimeRate)}
             />
             <KpiCard
             label="Precisión Estimación"
-            value={estimationAccuracy !== null ? String(estimationAccuracy) : "—"}
-            tone="purple"
+            value={estimationAccuracy !== null ? estimationAccuracy.toFixed(2) : "—"}
+            tone={getAccuracyKpiTone(estimationAccuracy)}
             />
             <KpiCard
             label="Tareas en Sprint"
             value={selectedKpis ? String(selectedKpis.totalTareas) : "—"}
-            tone="red"
+            tone="blue"
             />
         </div>
 
@@ -406,22 +410,22 @@ export const ProjectDashboard = ({ projectId }: Props) => {
             <KpiCard
             label="# Tasks Completadas"
             value={totalTasksSprint !== null ? String(totalTasksSprint) : "—"}
-            tone="cyan"
+            tone="blue"
             />
             <KpiCard
             label="# Horas Reales"
             value={totalRealHrsSprint !== null ? `${totalRealHrsSprint} hrs` : "—"}
-            tone="orangeAlt"
+            tone="blue"
             />
             <KpiCard
             label="Promedio Tasks / Dev"
             value={avgTasksPerDev !== null ? String(avgTasksPerDev) : "—"}
-            tone="olive"
+            tone="blue"
             />
             <KpiCard
             label="Promedio Horas / Dev"
             value={avgHrsPerDev !== null ? `${avgHrsPerDev} hrs` : "—"}
-            tone="purple"
+            tone="blue"
             />
         </div>
 
@@ -438,6 +442,25 @@ export const ProjectDashboard = ({ projectId }: Props) => {
             <ChartCard title="Estimación vs Real (hrs)">
             {sprints.length > 0 ? (
                 <ReactECharts option={groupedBarOption} className={styles.chart180} />
+            ) : (
+                <EmptyState />
+            )}
+            </ChartCard>
+        </div>
+
+        {/* Row: Tasks por Dev/Sprint + Horas por Dev/Sprint */}
+        <div className={styles.chartGridBottom}>
+            <ChartCard title="Tasks Terminadas por Desarrollador / Sprint">
+            {devPerf.length > 0 && allSprintNames.length > 0 ? (
+                <ReactECharts option={tasksPerDevSprintOption} className={styles.chart260} />
+            ) : (
+                <EmptyState />
+            )}
+            </ChartCard>
+
+            <ChartCard title="Horas Reales por Desarrollador / Sprint">
+            {devPerf.length > 0 && allSprintNames.length > 0 ? (
+                <ReactECharts option={hrsPerDevSprintOption} className={styles.chart260} />
             ) : (
                 <EmptyState />
             )}
@@ -470,25 +493,6 @@ export const ProjectDashboard = ({ projectId }: Props) => {
             )}
             </ChartCard>
         </div>
-
-        {/* Row: Tasks por Dev/Sprint + Horas por Dev/Sprint */}
-        <div className={styles.chartGridBottom}>
-            <ChartCard title="Tasks Terminadas por Desarrollador / Sprint">
-            {devPerf.length > 0 && allSprintNames.length > 0 ? (
-                <ReactECharts option={tasksPerDevSprintOption} className={styles.chart260} />
-            ) : (
-                <EmptyState />
-            )}
-            </ChartCard>
-
-            <ChartCard title="Horas Reales por Desarrollador / Sprint">
-            {devPerf.length > 0 && allSprintNames.length > 0 ? (
-                <ReactECharts option={hrsPerDevSprintOption} className={styles.chart260} />
-            ) : (
-                <EmptyState />
-            )}
-            </ChartCard>
-        </div>
         </div>
     );
 };
@@ -499,21 +503,27 @@ type KpiTone =
     | "blue"
     | "green"
     | "orange"
-    | "purple"
-    | "red"
-    | "cyan"
-    | "orangeAlt"
-    | "olive";
+    | "red";
 
 const KPI_TONE_CLASS: Record<KpiTone, string> = {
     blue: styles.kpiBlue,
     green: styles.kpiGreen,
     orange: styles.kpiOrange,
-    purple: styles.kpiPurple,
     red: styles.kpiRed,
-    cyan: styles.kpiCyan,
-    orangeAlt: styles.kpiOrangeAlt,
-    olive: styles.kpiOlive,
+};
+
+const getPercentKpiTone = (value: number | null): KpiTone => {
+    if (value === null) return "blue";
+    if (value >= 80) return "green";
+    if (value >= 50) return "orange";
+    return "red";
+};
+
+const getAccuracyKpiTone = (value: number | null): KpiTone => {
+    if (value === null) return "blue";
+    if (value > 0.9) return "green";
+    if (value >= 0.6) return "orange";
+    return "red";
 };
 
 const KpiCard = ({

@@ -35,6 +35,42 @@ const ensureHyphenatedUuid = (id: string) => {
   ).toLowerCase();
 };
 
+const getSprintDateOrderValue = (value: string) => {
+  const isoDateMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+
+  if (isoDateMatch) {
+    return Number(`${isoDateMatch[1]}${isoDateMatch[2]}${isoDateMatch[3]}`);
+  }
+
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
+};
+
+export const sortSprintsBySchedule = (sprints: Sprint[]) => {
+  return [...sprints].sort((a, b) => {
+    const startA = getSprintDateOrderValue(a.fechaInicio);
+    const startB = getSprintDateOrderValue(b.fechaInicio);
+
+    if (startA !== startB) {
+      return startA < startB ? -1 : 1;
+    }
+
+    const endA = getSprintDateOrderValue(a.fechaFin);
+    const endB = getSprintDateOrderValue(b.fechaFin);
+
+    if (endA !== endB) {
+      return endA < endB ? -1 : 1;
+    }
+
+    const nameComparison = a.nombre.localeCompare(b.nombre, "es", {
+      numeric: true,
+      sensitivity: "base",
+    });
+
+    return nameComparison || a.sprintId.localeCompare(b.sprintId);
+  });
+};
+
 export const getProyectosByTeam = async (teamId: string): Promise<Proyecto[]> => {
   const response = await apiClient.get<Proyecto[]>(`/api/teams/${teamId}/projects`);
   return response.data;
@@ -94,7 +130,7 @@ export const deleteProjectMember = async (projectId: string, userId: string): Pr
 
 export const getProjectSprints = async (projectId: string): Promise<Sprint[]> => {
   const response = await apiClient.get<Sprint[]>(`/api/projects/${projectId}/sprints`);
-  return response.data;
+  return sortSprintsBySchedule(response.data);
 };
 
 export const createSprint = async (
@@ -102,6 +138,14 @@ export const createSprint = async (
   sprint: CreateSprintRequest
 ): Promise<Sprint> => {
   const response = await apiClient.post<Sprint>(`/api/projects/${projectId}/sprints`, sprint);
+  return response.data;
+};
+
+export const updateSprint = async (
+  sprintId: string,
+  sprint: CreateSprintRequest
+): Promise<Sprint> => {
+  const response = await apiClient.put<Sprint>(`/api/sprints/${sprintId}`, sprint);
   return response.data;
 };
 

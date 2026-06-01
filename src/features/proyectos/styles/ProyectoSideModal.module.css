@@ -26,8 +26,7 @@
 
 .editActions {
   display: flex;
-  gap: 32px;
-  justify-content: center;
+  justify-content: space-between;
   border-top: 1px solid var(--border);
   padding-top: 16px;
   margin-top: auto;
@@ -65,6 +64,64 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.sprintsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sprintsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sprintRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e0e6ed;
+  border-radius: 8px;
+  background: transparent;
+}
+
+.sprintInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sprintInfo strong {
+  color: var(--text-1);
+  font-size: 0.92rem;
+}
+
+.sprintInfo span {
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+.sprintInfo span strong {
+  color: var(--text-2);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.sprintEditButton {
+  flex: 0 0 auto;
+  color: #1976d2 !important;
+}
+
+.sprintDialogContent {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .attachmentsTitle {

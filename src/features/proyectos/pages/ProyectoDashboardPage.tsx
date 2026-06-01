@@ -163,8 +163,12 @@ export const ProyectoDashboardPage = () => {
         </div>
       </div>
 
-      <div className={`tareas-layout ${isSideModalOpen ? "tareas-layout--with-panel" : ""}`}>
-        <div className="tareas-main">
+      <div
+        className={`tareas-layout ${styles.dashboardLayout} ${
+          isSideModalOpen ? "tareas-layout--with-panel" : ""
+        }`}
+      >
+        <div className={`tareas-main ${styles.dashboardMain}`}>
           {isLoading ? (
             <div className={styles.loadingState}>
               <CircularProgress />

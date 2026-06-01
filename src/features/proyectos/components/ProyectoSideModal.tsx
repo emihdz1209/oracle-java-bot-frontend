@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
-import { TextField, Button, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
+import { TextField, Button, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Alert } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   useUpdateProyecto,
   useDeleteProyecto,
+  useProjectSprints,
+  useUpdateSprint,
   useProjectDocuments,
   useUploadProjectDocument,
   useDeleteProjectDocument,
 } from "@/features/proyectos/hooks/useProyectos";
-import type { Proyecto, ProjectDocument } from "@/features/proyectos/types/proyecto";
+import type { Proyecto, ProjectDocument, Sprint, CreateSprintRequest } from "@/features/proyectos/types/proyecto";
 import styles from "@/features/proyectos/styles/ProyectoSideModal.module.css";
 
 /**
@@ -22,6 +25,24 @@ const formatFileSize = (bytes: number): string => {
   const size = (bytes / Math.pow(1024, index)).toFixed(0);
   return `${size} ${units[index]}`;
 };
+
+const toDateTimeLocalValue = (value: string) => {
+  if (!value) return "";
+  return value.slice(0, 16);
+};
+
+const formatSprintDate = (value: string) => {
+  const [datePart] = value.split("T");
+  const [year, month, day] = datePart.split("-");
+
+  if (!year || !month || !day) {
+    return value;
+  }
+
+  return `${day}/${month}/${year}`;
+};
+
+const toApiDateTime = (value: string) => (value.length === 16 ? `${value}:00` : value);
 
 interface SideModalProps {
   project: Proyecto | null;
@@ -38,6 +59,12 @@ interface ProyectoFormState {
   fechaInicioOriginal: string | null;
 }
 
+interface SprintFormState {
+  nombre: string;
+  fechaInicio: string;
+  fechaFin: string;
+}
+
 interface ProyectoEditFormProps {
   form: ProyectoFormState;
   isSaving: boolean;
@@ -46,6 +73,9 @@ interface ProyectoEditFormProps {
   onSubmit: (event: React.FormEvent) => void;
   onDelete: () => void;
   onCancel: () => void;
+  sprints?: Sprint[];
+  isSprintsLoading?: boolean;
+  onEditSprint?: (sprint: Sprint) => void;
   // Attachments
   documents?: ProjectDocument[];
   isDocsLoading?: boolean;
@@ -63,6 +93,9 @@ const ProyectoEditForm = ({
   onSubmit,
   onDelete,
   onCancel,
+  sprints = [],
+  isSprintsLoading = false,
+  onEditSprint,
   // attachments props
   documents = [],
   isDocsLoading = false,
@@ -109,6 +142,41 @@ const ProyectoEditForm = ({
         fullWidth
         slotProps={{ inputLabel: { shrink: true } }}
       />
+
+      <div className={styles.sprintsSection}>
+        <span className={styles.attachmentsTitle}>Sprints del proyecto</span>
+
+        {isSprintsLoading ? (
+          <CircularProgress size={18} />
+        ) : sprints.length === 0 ? (
+          <div className={styles.noDocuments}>
+            Este proyecto no tiene sprints registrados.
+          </div>
+        ) : (
+          <div className={styles.sprintsList}>
+            {sprints.map((sprint) => (
+              <div key={sprint.sprintId} className={styles.sprintRow}>
+                <div className={styles.sprintInfo}>
+                  <strong>{sprint.nombre}</strong>
+                  <span>
+                    <strong>Inicio:</strong> {formatSprintDate(sprint.fechaInicio)} |{" "}
+                    <strong>Fin:</strong> {formatSprintDate(sprint.fechaFin)}
+                  </span>
+                </div>
+                <IconButton
+                  size="small"
+                  onClick={() => onEditSprint?.(sprint)}
+                  aria-label={`Editar sprint ${sprint.nombre}`}
+                  title="Editar sprint"
+                  className={styles.sprintEditButton}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className={styles.attachmentsSection}>
         <span className={styles.attachmentsTitle}>Attachments</span>
@@ -236,9 +304,18 @@ export const ProyectoSideModal = ({
     dueDate: "",
     fechaInicioOriginal: null,
   });
+  const [selectedSprint, setSelectedSprint] = useState<Sprint | null>(null);
+  const [sprintForm, setSprintForm] = useState<SprintFormState>({
+    nombre: "",
+    fechaInicio: "",
+    fechaFin: "",
+  });
+  const [sprintSaveError, setSprintSaveError] = useState<string | null>(null);
 
   const updateMutation = useUpdateProyecto(teamId);
   const deleteMutation = useDeleteProyecto(teamId);
+  const sprintsQuery = useProjectSprints(project?.projectId);
+  const updateSprintMutation = useUpdateSprint(project?.projectId);
 
   // Documents upload/list state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -290,10 +367,75 @@ export const ProyectoSideModal = ({
       dueDate: project.fechaFin ? project.fechaFin.slice(0, 10) : "",
       fechaInicioOriginal: project.fechaInicio,
     });
+
+    setSelectedSprint(null);
+    setSprintSaveError(null);
   }, [project]);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  };
+
+  const handleOpenSprintEdit = (sprint: Sprint) => {
+    setSelectedSprint(sprint);
+    setSprintSaveError(null);
+    setSprintForm({
+      nombre: sprint.nombre,
+      fechaInicio: toDateTimeLocalValue(sprint.fechaInicio),
+      fechaFin: toDateTimeLocalValue(sprint.fechaFin),
+    });
+  };
+
+  const handleCloseSprintEdit = () => {
+    if (updateSprintMutation.isPending) {
+      return;
+    }
+
+    setSelectedSprint(null);
+    setSprintSaveError(null);
+  };
+
+  const handleSprintFieldChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSprintSaveError(null);
+    setSprintForm((current) => ({
+      ...current,
+      [event.target.name]: event.target.value,
+    }));
+  };
+
+  const handleSaveSprint = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!selectedSprint || !sprintForm.nombre.trim() || !sprintForm.fechaInicio || !sprintForm.fechaFin) {
+      setSprintSaveError("Completa nombre, fecha de inicio y fecha de fin.");
+      return;
+    }
+
+    if (sprintForm.fechaInicio >= sprintForm.fechaFin) {
+      setSprintSaveError("La fecha de inicio debe ser menor que la fecha de fin.");
+      return;
+    }
+
+    const data: CreateSprintRequest = {
+      nombre: sprintForm.nombre.trim(),
+      fechaInicio: toApiDateTime(sprintForm.fechaInicio),
+      fechaFin: toApiDateTime(sprintForm.fechaFin),
+    };
+
+    updateSprintMutation.mutate(
+      { sprintId: selectedSprint.sprintId, data },
+      {
+        onSuccess: () => {
+          setSelectedSprint(null);
+          setSprintSaveError(null);
+        },
+        onError: () => {
+          setSprintSaveError(
+            "No se pudo actualizar el sprint. Verifica que las fechas no se traslapen con otro sprint."
+          );
+        },
+      }
+    );
   };
 
   const handleDeleteDocument = (documentId: string) => {
@@ -380,6 +522,9 @@ export const ProyectoSideModal = ({
               onSubmit={handleSave}
               onDelete={handleDelete}
               onCancel={onClose}
+              sprints={sprintsQuery.data}
+              isSprintsLoading={sprintsQuery.isLoading}
+              onEditSprint={handleOpenSprintEdit}
               documents={documentsQuery.data}
               isDocsLoading={documentsQuery.isLoading}
               onFileChange={handleFileChange}
@@ -413,6 +558,68 @@ export const ProyectoSideModal = ({
             {deleteDocumentMutation.isPending ? <CircularProgress size={18} /> : "Delete"}
           </Button>
         </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(selectedSprint)}
+        onClose={handleCloseSprintEdit}
+        fullWidth
+        maxWidth="sm"
+        aria-labelledby="edit-sprint-dialog-title"
+      >
+        <DialogTitle id="edit-sprint-dialog-title">Editar sprint</DialogTitle>
+        <form onSubmit={handleSaveSprint}>
+          <DialogContent className={styles.sprintDialogContent}>
+            {sprintSaveError && <Alert severity="error">{sprintSaveError}</Alert>}
+
+            <TextField
+              name="nombre"
+              label="Nombre del sprint"
+              value={sprintForm.nombre}
+              onChange={handleSprintFieldChange}
+              required
+              size="small"
+              fullWidth
+            />
+
+            <div className={styles.twoColumnsRow}>
+              <TextField
+                name="fechaInicio"
+                label="Fecha de inicio"
+                type="datetime-local"
+                value={sprintForm.fechaInicio}
+                onChange={handleSprintFieldChange}
+                required
+                size="small"
+                fullWidth
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+              <TextField
+                name="fechaFin"
+                label="Fecha de fin"
+                type="datetime-local"
+                value={sprintForm.fechaFin}
+                onChange={handleSprintFieldChange}
+                required
+                size="small"
+                fullWidth
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseSprintEdit} disabled={updateSprintMutation.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={updateSprintMutation.isPending}
+            >
+              {updateSprintMutation.isPending ? <CircularProgress size={18} /> : "Guardar cambios"}
+            </Button>
+          </DialogActions>
+        </form>
       </Dialog>
     </aside>
   );
