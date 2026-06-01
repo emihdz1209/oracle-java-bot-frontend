@@ -1,7 +1,11 @@
 .loadingState {
   display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 10px;
   padding: 40px;
+  color: var(--text-2);
+  font-size: 0.9rem;
 }
 
 .root {
@@ -10,19 +14,80 @@
   max-width: 100%;
 }
 
-.sprintSelector {
+.filters {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .inlineSectionLabel {
   margin: 0 !important;
 }
 
-.sprintControl {
-  min-width: 180px;
+.filterGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterLabel {
+  color: var(--text-2);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.filterControl {
+  min-width: 120px;
+}
+
+.filterControl :global(.MuiOutlinedInput-root) {
+  height: 44px;
+  min-height: 44px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.filterControl :global(.MuiSelect-select) {
+  display: flex;
+  align-items: center;
+  min-height: 0 !important;
+  height: 44px;
+  padding: 10px 36px 10px 16px !important;
+  box-sizing: border-box;
+}
+
+.filterControl :global(.MuiSvgIcon-root) {
+  right: 10px;
+}
+
+.filterGroup + .filterGroup .filterControl {
+  min-width: 190px;
+}
+
+.inlineLoading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 16px;
+  color: var(--text-2);
+  font-size: 0.82rem;
+}
+
+.dashboardAlert {
+  margin-bottom: 16px;
+}
+
+.emptyNotice {
+  margin: -8px 0 16px;
+  padding: 10px 12px;
+  border: 1px solid #fde68a;
+  border-radius: var(--r-sm);
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 0.84rem;
 }
 
 .noSprintsMessage {
@@ -188,8 +253,19 @@
 }
 
 @media (max-width: 960px) {
-  .sprintSelector {
-    flex-wrap: wrap;
+  .filters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filterGroup {
+    align-items: flex-start;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .filterControl {
+    width: 100%;
   }
 
   .kpiGridPrimary,

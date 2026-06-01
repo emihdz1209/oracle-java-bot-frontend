@@ -20,12 +20,22 @@ import {
   deleteProjectDocument,
   sortSprintsBySchedule,
 } from "@/features/proyectos/services/proyectoService";
+import {
+  getDashboardDeveloperOptions,
+  getDashboardSprintOptions,
+  getProjectDashboardKpis,
+} from "@/features/proyectos/services/projectDashboardGraphqlService";
 import type {
   CreateProyectoRequest,
   CreateSprintRequest,
   Proyecto,
   Sprint,
 } from "@/features/proyectos/types/proyecto";
+
+export const ALL_DASHBOARD_FILTER = "ALL";
+
+const toDashboardNullableId = (value?: string) =>
+  !value || value === ALL_DASHBOARD_FILTER ? null : value;
 
 export const useProyectos = (teamId?: string) => {
   return useQuery({
@@ -109,6 +119,58 @@ export const useProjectSprints = (projectId?: string) => {
     queryKey: ["sprints", projectId],
     queryFn: () => getProjectSprints(projectId!),
     enabled: !!projectId,
+  });
+};
+
+export const useDashboardSprintOptions = (projectId?: string) => {
+  return useQuery({
+    queryKey: ["dashboardSprintOptions", projectId],
+    queryFn: () => getDashboardSprintOptions(projectId!),
+    enabled: !!projectId,
+  });
+};
+
+export const useDashboardDeveloperOptions = (projectId?: string) => {
+  return useQuery({
+    queryKey: ["dashboardDeveloperOptions", projectId],
+    queryFn: () => getDashboardDeveloperOptions(projectId!),
+    enabled: !!projectId,
+  });
+};
+
+export const useProjectDashboardKpis = (
+  projectId?: string,
+  sprintId?: string,
+  developerId?: string
+) => {
+  return useQuery({
+    queryKey: ["projectDashboardKpis", projectId, sprintId, developerId],
+    queryFn: () =>
+      getProjectDashboardKpis({
+        projectId: projectId!,
+        sprintId: toDashboardNullableId(sprintId),
+        developerId: toDashboardNullableId(developerId),
+      }),
+    enabled: !!projectId,
+  });
+};
+
+export const useProjectDashboardKpisByDeveloper = (
+  projectId: string | undefined,
+  sprintId: string | undefined,
+  developerIds: string[]
+) => {
+  return useQueries({
+    queries: developerIds.map((developerId) => ({
+      queryKey: ["projectDashboardKpisByDeveloper", projectId, sprintId, developerId],
+      queryFn: () =>
+        getProjectDashboardKpis({
+          projectId: projectId!,
+          sprintId: toDashboardNullableId(sprintId),
+          developerId,
+        }),
+      enabled: !!projectId && !!developerId,
+    })),
   });
 };
 

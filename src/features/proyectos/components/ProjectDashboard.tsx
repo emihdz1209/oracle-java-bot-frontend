@@ -1,555 +1,649 @@
 /// src/features/proyectos/components/ProjectDashboard.tsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { CircularProgress, FormControl, MenuItem, Select } from "@mui/material";
+import {
+  Alert,
+  CircularProgress,
+  FormControl,
+  MenuItem,
+  Select,
+} from "@mui/material";
 import ReactECharts from "echarts-for-react";
 import {
-    useProjectSprints,
-    useAllSprintKpis,
-    useProjectProgress,
-    useDeveloperPerformance,
+  ALL_DASHBOARD_FILTER,
+  useDashboardDeveloperOptions,
+  useDashboardSprintOptions,
+  useProjectDashboardKpis,
+  useProjectDashboardKpisByDeveloper,
 } from "@/features/proyectos/hooks/useProyectos";
+import type {
+  DashboardDeveloperOption,
+  DashboardSprintOption,
+  ProjectDashboardKpis,
+  ProjectDashboardSprintHistoryItem,
+} from "@/features/proyectos/services/projectDashboardGraphqlService";
 import styles from "@/features/proyectos/styles/ProjectDashboard.module.css";
 
 interface Props {
-    projectId: string;
+  projectId: string;
 }
 
-// ── Sprint persistence helpers ───────────────────────────────────────────────
-
-const sprintStorageKey = (projectId: string) => `dashboard.sprint.${projectId}`;
-
-const readStoredSprint = (projectId: string): string => {
-    try {
-        return localStorage.getItem(sprintStorageKey(projectId)) ?? "";
-    } catch {
-        return "";
-    }
+const ALL_SPRINT_OPTION: DashboardSprintOption = {
+  id: ALL_DASHBOARD_FILTER,
+  name: "Todos",
+  startDate: "",
+  endDate: "",
 };
 
-const persistSprint = (projectId: string, sprintId: string): void => {
-    try {
-        if (sprintId) {
-            localStorage.setItem(sprintStorageKey(projectId), sprintId);
-        } else {
-            localStorage.removeItem(sprintStorageKey(projectId));
-        }
-    } catch {
-        // ignore
-    }
+const ALL_DEVELOPER_OPTION: DashboardDeveloperOption = {
+  id: ALL_DASHBOARD_FILTER,
+  name: "Todo el equipo",
+  email: "",
 };
-
-// ── Palette ──────────────────────────────────────────────────────────────────
 
 const DEV_COLORS = [
-    "#2563eb", "#16a34a", "#d97706", "#7c3aed",
-    "#dc2626", "#0891b2", "#ea580c", "#65a30d",
+  "#2563eb",
+  "#16a34a",
+  "#d97706",
+  "#7c3aed",
+  "#dc2626",
+  "#0891b2",
+  "#ea580c",
+  "#65a30d",
 ];
 
 const shortName = (fullName: string): string => {
-    const parts = fullName.trim().split(/\s+/);
-    if (parts.length < 2) return fullName;
-    return `${parts[0]} ${parts[1][0]}.`;
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length < 2) return fullName;
+  return `${parts[0]} ${parts[1][0]}.`;
 };
 
-// ── Component ────────────────────────────────────────────────────────────────
+const formatSmartNumber = (value: number | null | undefined, decimals = 0) => {
+  const number = Number(value ?? 0);
+  if (!Number.isFinite(number)) return "0";
+
+  if (Number.isInteger(number)) {
+    return String(number);
+  }
+
+  return number.toFixed(decimals).replace(/\.?0+$/, "");
+};
+
+const formatPercentSmart = (value: number | null | undefined) =>
+  `${formatSmartNumber(value, 2)}%`;
+
+const formatHours = (value: number | null | undefined) =>
+  `${formatSmartNumber(value, 1)} hrs`;
+
+const getHistoryItem = (
+  dashboard: ProjectDashboardKpis,
+  sprint: ProjectDashboardSprintHistoryItem
+) =>
+  dashboard.sprintHistory.find((item) => item.sprintId === sprint.sprintId) ??
+  dashboard.sprintHistory.find((item) => item.sprintName === sprint.sprintName);
+
+const getDeveloperName = (
+  dashboard: ProjectDashboardKpis,
+  developerOptions: DashboardDeveloperOption[],
+  index: number
+) => {
+  const optionName = developerOptions.find(
+    (option) => option.id === dashboard.developerId
+  )?.name;
+
+  return dashboard.developerName ?? optionName ?? `Developer ${index + 1}`;
+};
 
 export const ProjectDashboard = ({ projectId }: Props) => {
-    const [selectedSprintId, setSelectedSprintId] = useState<string>(
-        () => readStoredSprint(projectId)
-    );
+  const [selectedSprintId, setSelectedSprintId] = useState(ALL_DASHBOARD_FILTER);
+  const [selectedDeveloperId, setSelectedDeveloperId] = useState(ALL_DASHBOARD_FILTER);
 
-    const { data: sprints = [], isLoading: loadingSprints } = useProjectSprints(projectId);
-    const { data: progressData } = useProjectProgress(projectId);
-    const { data: devPerf = [], isLoading: loadingDevs } = useDeveloperPerformance(projectId);
-    const sprintKpisQueries = useAllSprintKpis(sprints);
+  const sprintOptionsQuery = useDashboardSprintOptions(projectId);
+  const developerOptionsQuery = useDashboardDeveloperOptions(projectId);
+  const dashboardQuery = useProjectDashboardKpis(
+    projectId,
+    selectedSprintId,
+    selectedDeveloperId
+  );
 
-    useEffect(() => {
-        persistSprint(projectId, selectedSprintId);
-    }, [projectId, selectedSprintId]);
+  const sprintOptions = useMemo(
+    () => [ALL_SPRINT_OPTION, ...(sprintOptionsQuery.data ?? [])],
+    [sprintOptionsQuery.data]
+  );
 
-    useEffect(() => {
-        if (!sprints.length || !selectedSprintId) return;
-        const exists = sprints.some((s) => s.sprintId === selectedSprintId);
-        if (!exists) setSelectedSprintId("");
-    }, [sprints, selectedSprintId]);
+  const developerOptions = useMemo(
+    () => [ALL_DEVELOPER_OPTION, ...(developerOptionsQuery.data ?? [])],
+    [developerOptionsQuery.data]
+  );
 
-    const effectiveSprintId = selectedSprintId || sprints[0]?.sprintId || "";
-    const selectedSprintIdx = sprints.findIndex((s) => s.sprintId === effectiveSprintId);
-    const selectedKpis = selectedSprintIdx >= 0 ? sprintKpisQueries[selectedSprintIdx]?.data : undefined;
-
-    // ── Derived KPI values — Row 1 ──────────────────────────────────
-    const progressValue = progressData?.progress ?? 0;
-
-    const completionRate =
-        selectedKpis && selectedKpis.totalTareas > 0
-        ? Math.round((selectedKpis.tareasCompletadas / selectedKpis.totalTareas) * 100)
-        : null;
-
-    const onTimeRate =
-        selectedKpis && selectedKpis.tareasCompletadas > 0
-        ? Math.round((selectedKpis.aTiempo / selectedKpis.tareasCompletadas) * 100)
-        : null;
-
-    const estimationAccuracy =
-        selectedKpis && selectedKpis.totalRealHrs > 0
-        ? selectedKpis.totalEstimadoHrs / selectedKpis.totalRealHrs
-        : null;
-
-    // ── Derived KPI values — Row 2 (sprint-scoped) ──────────────────
-    // #Tasks completadas en el sprint seleccionado
-    const totalTasksSprint = selectedKpis?.tareasCompletadas ?? null;
-
-    // #Horas Reales del sprint seleccionado
-    const totalRealHrsSprint = selectedKpis?.totalRealHrs ?? null;
-
-    // Promedio de tasks completadas por developer en este sprint
-    // We derive this from devPerf.historicoSprints for the selected sprint
-    const sprintDevData = devPerf.map((dev) =>
-        dev.historicoSprints.find((s) => s.sprintId === effectiveSprintId)
-    );
-    const devsWithData = sprintDevData.filter(Boolean);
-
-    const avgTasksPerDev =
-        devsWithData.length > 0
-        ? (
-            devsWithData.reduce((sum, s) => sum + (s?.tareasTerminadas ?? 0), 0) /
-            devsWithData.length
-          ).toFixed(1)
-        : null;
-
-    const avgHrsPerDev =
-        devsWithData.length > 0
-        ? (
-            devsWithData.reduce((sum, s) => sum + (s?.horasReales ?? 0), 0) /
-            devsWithData.length
-          ).toFixed(1)
-        : null;
-
-    // ── All sprint names (for multi-sprint charts) ───────────────────
-    const sprintOrderMap = new Map(sprints.map((s, i) => [s.sprintId, i]));
-    const allSprintNames = Array.from(
-        new Map(
-            devPerf
-                .flatMap((d) => d.historicoSprints)
-                .map((s) => [s.sprintId, s.sprintNombre])
-        ).entries()
-    )
-    .sort(([idA], [idB]) => (sprintOrderMap.get(idA) ?? 0) - (sprintOrderMap.get(idB) ?? 0))
-    .map(([, name]) => name);
-    const devNames = devPerf.map((d) => shortName(d.nombre));
-
-
-    // ── Chart: Horizontal Bar — Responsabilidad Individual ──────────
-    // Filtered by active sprint: show tareasTerminadas for that sprint
-    const hbarSprintData = devPerf.map((dev) => {
-        const sprintEntry = dev.historicoSprints.find((s) => s.sprintId === effectiveSprintId);
-        const total = dev.historicoSprints.reduce((sum, s) => sum + s.tareasTerminadas, 0);
-        const value = effectiveSprintId
-            ? (sprintEntry?.tareasTerminadas ?? 0)
-            : total;
-        return value;
-    });
-    const hbarMax = Math.max(...hbarSprintData, 1);
-    const hbarOption = {
-        tooltip: { formatter: (p: { name: string; value: number }) => `${p.name}: ${p.value} tareas` },
-        grid: { left: "0%", right: "12%", bottom: "0%", top: "0%", containLabel: true },
-        xAxis: { type: "value", max: hbarMax, axisLabel: { formatter: "{value}" } },
-        yAxis: { type: "category", data: devNames, axisLabel: { width: 80, overflow: "truncate" } },
-        series: [
-        {
-            type: "bar",
-            data: hbarSprintData,
-            itemStyle: { color: "#7c3aed", borderRadius: [0, 4, 4, 0] },
-            label: { show: true, position: "right", formatter: "{c}" },
-        },
-        ],
-    };
-
-    // ── Chart: Stacked Bar — Entrega a Tiempo ───────────────────────
-    const sprintNames = sprints.map((s) => s.nombre);
-    const aTiempoData = sprintKpisQueries.map((q) => q.data?.aTiempo ?? 0);
-    const conRetrasoData = sprintKpisQueries.map((q) => q.data?.conRetraso ?? 0);
-    const stackedBarOption = {
-        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-        legend: { data: ["A tiempo", "Con retraso"], top: 0, textStyle: { fontSize: 11 } },
-        grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
-        xAxis: { type: "category", data: sprintNames },
-        yAxis: { type: "value" },
-        series: [
-        {
-            name: "A tiempo",
-            type: "bar",
-            stack: "total",
-            data: aTiempoData,
-            itemStyle: { color: "#16a34a" },
-        },
-        {
-            name: "Con retraso",
-            type: "bar",
-            stack: "total",
-            data: conRetrasoData,
-            itemStyle: { color: "#dc2626" },
-        },
-        ],
-    };
-
-    // ── Chart: Grouped Bar — Estimación vs Real ──────────────────────
-    const estimadoData = sprintKpisQueries.map((q) => q.data?.totalEstimadoHrs ?? 0);
-    const realData = sprintKpisQueries.map((q) => q.data?.totalRealHrs ?? 0);
-    const groupedBarOption = {
-        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-        legend: { data: ["Estimado (hrs)", "Real (hrs)"], top: 0, textStyle: { fontSize: 11 } },
-        grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
-        xAxis: { type: "category", data: sprintNames },
-        yAxis: { type: "value" },
-        series: [
-        {
-            name: "Estimado (hrs)",
-            type: "bar",
-            data: estimadoData,
-            itemStyle: { color: "#2563eb" },
-        },
-        {
-            name: "Real (hrs)",
-            type: "bar",
-            data: realData,
-            itemStyle: { color: "#d97706" },
-        },
-        ],
-    };
-
-    // ── Chart: Multi-line — Productividad Histórica ──────────────────
-    const multilineOption = {
-        tooltip: { trigger: "axis" },
-        legend: { data: devNames, top: 0, textStyle: { fontSize: 11 } },
-        grid: { left: "8%", right: "8%", bottom: "8%", top: "56px", containLabel: true },
-        xAxis: { type: "category", data: allSprintNames, boundaryGap: ['2%', '8%'] },
-        yAxis: { type: "value", name: "Tareas", nameTextStyle: { fontSize: 11 } },
-        series: devPerf.map((dev) => ({
-        name: shortName(dev.nombre),
-        type: "line",
-        smooth: true,
-        data: allSprintNames.map(
-            (sName) =>
-            dev.historicoSprints.find((s) => s.sprintNombre === sName)?.tareasTerminadas ?? 0
-        ),
-        })),
-    };
-
-    // ── Chart: Stacked Bar — Carga de Trabajo ───────────────────────
-    const workloadTotals = allSprintNames.map((sName) =>
-        parseFloat(
-            devPerf.reduce((sum, dev) => {
-                const match = dev.historicoSprints.find((s) => s.sprintNombre === sName);
-                return sum + (match?.horasReales ?? 0);
-            }, 0).toFixed(1)
-        )
-    );
-    const workloadOption = {
-        tooltip: {
-            trigger: "axis",
-            axisPointer: { type: "shadow" },
-            formatter: (params: { seriesName: string; value: number; name: string }[]) => {
-                const total = workloadTotals[allSprintNames.indexOf(params[0]?.name)];
-                const rows = params
-                    .filter((p) => p.value > 0)
-                    .map((p) => `${p.seriesName}: <b>${p.value} hrs</b>`)
-                    .join("<br/>");
-                return `${params[0]?.name}<br/>${rows}<br/><b>Total: ${total?.toFixed(1)} hrs</b>`;
-            },
-        },
-        legend: { data: devNames, top: 0, textStyle: { fontSize: 11 } },
-        grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
-        xAxis: { type: "category", data: allSprintNames },
-        yAxis: { type: "value", name: "hrs", nameTextStyle: { fontSize: 11 } },
-        series: devPerf.map((dev, idx) => ({
-            name: shortName(dev.nombre),
-            type: "bar",
-            stack: "total",
-            itemStyle: { color: DEV_COLORS[idx % DEV_COLORS.length] },
-            data: allSprintNames.map(
-                (sName) =>
-                    dev.historicoSprints.find((s) => s.sprintNombre === sName)?.horasReales ?? 0
-            ),
-            ...(idx === devPerf.length - 1
-                ? {
-                    label: {
-                        show: true,
-                        position: "top",
-                        formatter: (_p: { dataIndex: number }) =>
-                            `${workloadTotals[_p.dataIndex]}`,
-                        fontSize: 11,
-                        fontWeight: "bold",
-                        color: "#374151",
-                    },
-                  }
-                : {}),
-        })),
-    };
-
-    // ── Chart NEW: Tasks terminadas por usuario / sprint ─────────────
-    // Grouped bars: each developer is a series, x-axis = sprints
-    const tasksPerDevSprintOption = {
-        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-        legend: { data: devNames, top: 0, textStyle: { fontSize: 11 } },
-        grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
-        xAxis: { type: "category", data: allSprintNames },
-        yAxis: { type: "value", name: "Tareas", nameTextStyle: { fontSize: 11 } },
-        series: devPerf.map((dev, idx) => ({
-            name: shortName(dev.nombre),
-            type: "bar",
-            itemStyle: { color: DEV_COLORS[idx % DEV_COLORS.length] },
-            label: {
-                show: true,
-                position: "top",
-                fontSize: 10,
-                formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
-            },
-            data: allSprintNames.map(
-                (sName) =>
-                    dev.historicoSprints.find((s) => s.sprintNombre === sName)?.tareasTerminadas ?? 0
-            ),
-        })),
-    };
-
-    // ── Chart NEW: Horas Reales por usuario / sprint ─────────────────
-    const hrsPerDevSprintOption = {
-        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-        legend: { data: devNames, top: 0, textStyle: { fontSize: 11 } },
-        grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
-        xAxis: { type: "category", data: allSprintNames },
-        yAxis: { type: "value", name: "hrs", nameTextStyle: { fontSize: 11 } },
-        series: devPerf.map((dev, idx) => ({
-            name: shortName(dev.nombre),
-            type: "bar",
-            itemStyle: { color: DEV_COLORS[idx % DEV_COLORS.length] },
-            label: {
-                show: true,
-                position: "top",
-                fontSize: 10,
-                formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}h` : ""),
-            },
-            data: allSprintNames.map(
-                (sName) =>
-                    dev.historicoSprints.find((s) => s.sprintNombre === sName)?.horasReales ?? 0
-            ),
-        })),
-    };
-
-    // ── Render ───────────────────────────────────────────────────────
-    if (loadingSprints || loadingDevs) {
-        return (
-            <div className={styles.loadingState}>
-                <CircularProgress />
-            </div>
-        );
+  const developerChartIds = useMemo(() => {
+    if (selectedDeveloperId !== ALL_DASHBOARD_FILTER) {
+      return [];
     }
 
+    return (developerOptionsQuery.data ?? []).map((developer) => developer.id);
+  }, [developerOptionsQuery.data, selectedDeveloperId]);
+
+  const developerKpisQueries = useProjectDashboardKpisByDeveloper(
+    projectId,
+    selectedSprintId,
+    developerChartIds
+  );
+
+  useEffect(() => {
+    if (!sprintOptions.some((option) => option.id === selectedSprintId)) {
+      setSelectedSprintId(ALL_DASHBOARD_FILTER);
+    }
+  }, [selectedSprintId, sprintOptions]);
+
+  useEffect(() => {
+    if (!developerOptions.some((option) => option.id === selectedDeveloperId)) {
+      setSelectedDeveloperId(ALL_DASHBOARD_FILTER);
+    }
+  }, [selectedDeveloperId, developerOptions]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
+    const errors = [
+      sprintOptionsQuery.error,
+      developerOptionsQuery.error,
+      dashboardQuery.error,
+      ...developerKpisQueries.map((query) => query.error),
+    ].filter(Boolean);
+
+    if (errors.length > 0) {
+      console.error("Dashboard KPI GraphQL errors:", errors);
+    }
+  }, [
+    dashboardQuery.error,
+    developerKpisQueries,
+    developerOptionsQuery.error,
+    sprintOptionsQuery.error,
+  ]);
+
+  const dashboardData = dashboardQuery.data;
+  const summary = dashboardData?.summary;
+  const sprintHistory = dashboardData?.sprintHistory ?? [];
+  const sprintNames = sprintHistory.map((item) => item.sprintName);
+
+  const developerDashboards = useMemo(() => {
+    if (selectedDeveloperId !== ALL_DASHBOARD_FILTER) {
+      return dashboardData ? [dashboardData] : [];
+    }
+
+    return developerKpisQueries
+      .map((query) => query.data)
+      .filter((item): item is ProjectDashboardKpis => Boolean(item));
+  }, [dashboardData, developerKpisQueries, selectedDeveloperId]);
+
+  const developerNames = developerDashboards.map((dashboard, index) =>
+    shortName(getDeveloperName(dashboard, developerOptions, index))
+  );
+
+  const hbarSprintData = developerDashboards.map(
+    (dashboard) => dashboard.summary.completedTasks
+  );
+
+  const hbarMax = Math.max(...hbarSprintData, 1);
+  const hbarOption = {
+    tooltip: {
+      formatter: (p: { name: string; value: number }) => `${p.name}: ${p.value} tareas`,
+    },
+    grid: { left: "0%", right: "12%", bottom: "0%", top: "0%", containLabel: true },
+    xAxis: { type: "value", max: hbarMax, axisLabel: { formatter: "{value}" } },
+    yAxis: { type: "category", data: developerNames, axisLabel: { width: 80, overflow: "truncate" } },
+    series: [
+      {
+        type: "bar",
+        data: hbarSprintData,
+        itemStyle: { color: "#7c3aed", borderRadius: [0, 4, 4, 0] },
+        label: { show: true, position: "right", formatter: "{c}" },
+      },
+    ],
+  };
+
+  const stackedBarOption = {
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    legend: { data: ["A tiempo", "Con retraso"], top: 0, textStyle: { fontSize: 11 } },
+    grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
+    xAxis: { type: "category", data: sprintNames },
+    yAxis: { type: "value" },
+    series: [
+      {
+        name: "A tiempo",
+        type: "bar",
+        stack: "total",
+        data: sprintHistory.map((item) => item.onTimeTasks),
+        itemStyle: { color: "#16a34a" },
+      },
+      {
+        name: "Con retraso",
+        type: "bar",
+        stack: "total",
+        data: sprintHistory.map((item) => item.delayedTasks),
+        itemStyle: { color: "#dc2626" },
+      },
+    ],
+  };
+
+  const groupedBarOption = {
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    legend: { data: ["Estimado (hrs)", "Real (hrs)"], top: 0, textStyle: { fontSize: 11 } },
+    grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
+    xAxis: { type: "category", data: sprintNames },
+    yAxis: { type: "value" },
+    series: [
+      {
+        name: "Estimado (hrs)",
+        type: "bar",
+        data: sprintHistory.map((item) => item.totalEstimatedHours),
+        itemStyle: { color: "#2563eb" },
+      },
+      {
+        name: "Real (hrs)",
+        type: "bar",
+        data: sprintHistory.map((item) => item.totalRealHours),
+        itemStyle: { color: "#d97706" },
+      },
+    ],
+  };
+
+  const multilineOption = {
+    tooltip: { trigger: "axis" },
+    legend: { data: developerNames, top: 0, textStyle: { fontSize: 11 } },
+    grid: { left: "8%", right: "8%", bottom: "8%", top: "56px", containLabel: true },
+    xAxis: { type: "category", data: sprintNames, boundaryGap: ["2%", "8%"] },
+    yAxis: { type: "value", name: "Tareas", nameTextStyle: { fontSize: 11 } },
+    series: developerDashboards.map((dashboard, index) => ({
+      name: developerNames[index],
+      type: "line",
+      smooth: true,
+      data: sprintHistory.map(
+        (sprint) => getHistoryItem(dashboard, sprint)?.completedTasks ?? 0
+      ),
+    })),
+  };
+
+  const workloadTotals = sprintHistory.map((sprint) =>
+    parseFloat(
+      developerDashboards
+        .reduce(
+          (sum, dashboard) => sum + (getHistoryItem(dashboard, sprint)?.totalRealHours ?? 0),
+          0
+        )
+        .toFixed(1)
+    )
+  );
+
+  const workloadOption = {
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
+      formatter: (params: { seriesName: string; value: number; name: string }[]) => {
+        const total = workloadTotals[sprintNames.indexOf(params[0]?.name)];
+        const rows = params
+          .filter((p) => p.value > 0)
+          .map((p) => `${p.seriesName}: <b>${p.value} hrs</b>`)
+          .join("<br/>");
+        return `${params[0]?.name}<br/>${rows}<br/><b>Total: ${total?.toFixed(1)} hrs</b>`;
+      },
+    },
+    legend: { data: developerNames, top: 0, textStyle: { fontSize: 11 } },
+    grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
+    xAxis: { type: "category", data: sprintNames },
+    yAxis: { type: "value", name: "hrs", nameTextStyle: { fontSize: 11 } },
+    series: developerDashboards.map((dashboard, index) => ({
+      name: developerNames[index],
+      type: "bar",
+      stack: "total",
+      itemStyle: { color: DEV_COLORS[index % DEV_COLORS.length] },
+      data: sprintHistory.map(
+        (sprint) => getHistoryItem(dashboard, sprint)?.totalRealHours ?? 0
+      ),
+      ...(index === developerDashboards.length - 1
+        ? {
+            label: {
+              show: true,
+              position: "top",
+              formatter: (_p: { dataIndex: number }) =>
+                `${workloadTotals[_p.dataIndex]}`,
+              fontSize: 11,
+              fontWeight: "bold",
+              color: "#374151",
+            },
+          }
+        : {}),
+    })),
+  };
+
+  const tasksPerDevSprintOption = {
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    legend: { data: developerNames, top: 0, textStyle: { fontSize: 11 } },
+    grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
+    xAxis: { type: "category", data: sprintNames },
+    yAxis: { type: "value", name: "Tareas", nameTextStyle: { fontSize: 11 } },
+    series: developerDashboards.map((dashboard, index) => ({
+      name: developerNames[index],
+      type: "bar",
+      itemStyle: { color: DEV_COLORS[index % DEV_COLORS.length] },
+      label: {
+        show: true,
+        position: "top",
+        fontSize: 10,
+        formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
+      },
+      data: sprintHistory.map(
+        (sprint) => getHistoryItem(dashboard, sprint)?.completedTasks ?? 0
+      ),
+    })),
+  };
+
+  const hrsPerDevSprintOption = {
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    legend: { data: developerNames, top: 0, textStyle: { fontSize: 11 } },
+    grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
+    xAxis: { type: "category", data: sprintNames },
+    yAxis: { type: "value", name: "hrs", nameTextStyle: { fontSize: 11 } },
+    series: developerDashboards.map((dashboard, index) => ({
+      name: developerNames[index],
+      type: "bar",
+      itemStyle: { color: DEV_COLORS[index % DEV_COLORS.length] },
+      label: {
+        show: true,
+        position: "top",
+        fontSize: 10,
+        formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}h` : ""),
+      },
+      data: sprintHistory.map(
+        (sprint) => getHistoryItem(dashboard, sprint)?.totalRealHours ?? 0
+      ),
+    })),
+  };
+
+  const loadingOptions = sprintOptionsQuery.isLoading || developerOptionsQuery.isLoading;
+  const loadingMetrics = dashboardQuery.isLoading && !dashboardData;
+  const refreshingMetrics = dashboardQuery.isFetching && Boolean(dashboardData);
+  const loadingDeveloperCharts =
+    selectedDeveloperId === ALL_DASHBOARD_FILTER &&
+    developerKpisQueries.some((query) => query.isLoading || query.isFetching);
+  const hasOptionsError = Boolean(sprintOptionsQuery.error || developerOptionsQuery.error);
+  const hasMetricsError = Boolean(dashboardQuery.error);
+  const hasSprintHistory = sprintHistory.length > 0;
+  const hasDeveloperChartData = developerDashboards.length > 0 && hasSprintHistory;
+  const showGlobalDeveloperCharts =
+    selectedSprintId === ALL_DASHBOARD_FILTER &&
+    selectedDeveloperId === ALL_DASHBOARD_FILTER;
+
+  if (loadingOptions) {
     return (
-        <div className={styles.root}>
-        {/* Sprint selector */}
-        {sprints.length > 0 && (
-            <div className={styles.sprintSelector}>
-            <span className={`section-label ${styles.inlineSectionLabel}`}>
-                Sprint activo
-            </span>
-            <FormControl size="small" className={styles.sprintControl}>
-                <Select
-                value={effectiveSprintId}
-                onChange={(e) => setSelectedSprintId(e.target.value)}
-                >
-                {sprints.map((s) => (
-                    <MenuItem key={s.sprintId} value={s.sprintId}>
-                    {s.nombre}
-                    </MenuItem>
-                ))}
-                </Select>
-            </FormControl>
+      <div className={styles.loadingState}>
+        <CircularProgress size={24} />
+        <span>Cargando filtros...</span>
+      </div>
+    );
+  }
+
+  if (hasOptionsError) {
+    return (
+      <Alert severity="error" className={styles.dashboardAlert}>
+        No se pudieron cargar las opciones del dashboard.
+      </Alert>
+    );
+  }
+
+  return (
+    <div className={styles.root}>
+      <div className={styles.filters}>
+        <div className={styles.filterGroup}>
+          <span className={styles.filterLabel}>Filtro por Sprints</span>
+          <FormControl size="small" className={styles.filterControl}>
+            <Select
+              value={selectedSprintId}
+              onChange={(event) => setSelectedSprintId(event.target.value)}
+              inputProps={{ "aria-label": "Sprint" }}
+            >
+              {sprintOptions.map((sprint) => (
+                <MenuItem key={sprint.id} value={sprint.id}>
+                  {sprint.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </div>
+
+        <div className={styles.filterGroup}>
+          <span className={styles.filterLabel}>Filtro por Developer</span>
+          <FormControl size="small" className={styles.filterControl}>
+            <Select
+              value={selectedDeveloperId}
+              onChange={(event) => setSelectedDeveloperId(event.target.value)}
+              inputProps={{ "aria-label": "Developer" }}
+            >
+              {developerOptions.map((developer) => (
+                <MenuItem key={developer.id} value={developer.id}>
+                  {developer.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </div>
+      </div>
+
+      {refreshingMetrics && (
+        <div className={styles.inlineLoading}>
+          <CircularProgress size={16} />
+          <span>Cargando métricas...</span>
+        </div>
+      )}
+
+      {hasMetricsError && (
+        <Alert severity="error" className={styles.dashboardAlert}>
+          No se pudieron cargar las métricas del dashboard.
+        </Alert>
+      )}
+
+      {loadingMetrics ? (
+        <div className={styles.loadingState}>
+          <CircularProgress size={24} />
+          <span>Cargando métricas...</span>
+        </div>
+      ) : dashboardData && summary ? (
+        <>
+          <div className={styles.kpiGridPrimary}>
+            <KpiCard
+              label="Progreso General"
+              value={formatPercentSmart(summary.completionRate)}
+              tone={getPercentKpiTone(summary.completionRate)}
+            />
+            <KpiCard
+              label="Sprint Completion"
+              value={formatPercentSmart(summary.completionRate)}
+              tone={getPercentKpiTone(summary.completionRate)}
+            />
+            <KpiCard
+              label="Entrega a Tiempo"
+              value={formatPercentSmart(summary.onTimeRate)}
+              tone={getPercentKpiTone(summary.onTimeRate)}
+            />
+            <KpiCard
+              label="Precisión Estimación"
+              value={formatSmartNumber(summary.estimationAccuracy, 2)}
+              tone={getAccuracyKpiTone(summary.estimationAccuracy)}
+            />
+            <KpiCard
+              label={
+                selectedSprintId === ALL_DASHBOARD_FILTER
+                  ? "Tareas totales"
+                  : "Tareas en sprint"
+              }
+              value={formatSmartNumber(summary.totalTasks)}
+              tone="blue"
+            />
+          </div>
+
+          <div className={styles.kpiGridSecondary}>
+            <KpiCard
+              label="# Tasks Completadas"
+              value={formatSmartNumber(summary.completedTasks)}
+              tone="blue"
+            />
+            <KpiCard
+              label="# Horas Reales"
+              value={formatHours(summary.totalRealHours)}
+              tone="blue"
+            />
+            <KpiCard
+              label="Promedio Tasks / Dev"
+              value={formatSmartNumber(summary.avgTasksPerDeveloper, 1)}
+              tone="blue"
+            />
+            <KpiCard
+              label="Promedio Horas / Dev"
+              value={formatHours(summary.avgHoursPerDeveloper)}
+              tone="blue"
+            />
+          </div>
+
+          {summary.totalTasks === 0 && (
+            <div className={styles.emptyNotice}>
+              No hay tareas registradas para esta combinación de filtros.
             </div>
-        )}
+          )}
 
-        {sprints.length === 0 && (
-            <p className={styles.noSprintsMessage}>
-            Este proyecto aún no tiene sprints. Crea uno para ver KPIs de sprint.
-            </p>
-        )}
-
-        {/* KPI Row 1: project-level */}
-        <div className={styles.kpiGridPrimary}>
-            <KpiCard
-            label="Progreso General"
-            value={`${Math.round(progressValue)}%`}
-            tone={getPercentKpiTone(progressValue)}
-            />
-            <KpiCard
-            label="Sprint Completion"
-            value={completionRate !== null ? `${completionRate}%` : "—"}
-            tone={getPercentKpiTone(completionRate)}
-            />
-            <KpiCard
-            label="Entrega a Tiempo"
-            value={onTimeRate !== null ? `${onTimeRate}%` : "—"}
-            tone={getPercentKpiTone(onTimeRate)}
-            />
-            <KpiCard
-            label="Precisión Estimación"
-            value={estimationAccuracy !== null ? estimationAccuracy.toFixed(2) : "—"}
-            tone={getAccuracyKpiTone(estimationAccuracy)}
-            />
-            <KpiCard
-            label="Tareas en Sprint"
-            value={selectedKpis ? String(selectedKpis.totalTareas) : "—"}
-            tone="blue"
-            />
-        </div>
-
-        {/* KPI Row 2: sprint-scoped detail */}
-        <div className={styles.kpiGridSecondary}>
-            <KpiCard
-            label="# Tasks Completadas"
-            value={totalTasksSprint !== null ? String(totalTasksSprint) : "—"}
-            tone="blue"
-            />
-            <KpiCard
-            label="# Horas Reales"
-            value={totalRealHrsSprint !== null ? `${totalRealHrsSprint} hrs` : "—"}
-            tone="blue"
-            />
-            <KpiCard
-            label="Promedio Tasks / Dev"
-            value={avgTasksPerDev !== null ? String(avgTasksPerDev) : "—"}
-            tone="blue"
-            />
-            <KpiCard
-            label="Promedio Horas / Dev"
-            value={avgHrsPerDev !== null ? `${avgHrsPerDev} hrs` : "—"}
-            tone="blue"
-            />
-        </div>
-
-        {/* Row: Entrega a Tiempo + Estimación vs Real */}
-        <div className={styles.chartGridTwo}>
+          <div className={styles.chartGridTwo}>
             <ChartCard title="Entrega a Tiempo por Sprint">
-            {sprints.length > 0 ? (
+              {hasSprintHistory ? (
                 <ReactECharts option={stackedBarOption} className={styles.chart180} />
-            ) : (
+              ) : (
                 <EmptyState />
-            )}
+              )}
             </ChartCard>
 
             <ChartCard title="Estimación vs Real (hrs)">
-            {sprints.length > 0 ? (
+              {hasSprintHistory ? (
                 <ReactECharts option={groupedBarOption} className={styles.chart180} />
-            ) : (
+              ) : (
                 <EmptyState />
-            )}
+              )}
             </ChartCard>
-        </div>
+          </div>
 
-        {/* Row: Tasks por Dev/Sprint + Horas por Dev/Sprint */}
-        <div className={styles.chartGridBottom}>
+          <div className={styles.chartGridBottom}>
             <ChartCard title="Tasks Terminadas por Desarrollador / Sprint">
-            {devPerf.length > 0 && allSprintNames.length > 0 ? (
+              {loadingDeveloperCharts ? (
+                <ChartLoading />
+              ) : hasDeveloperChartData ? (
                 <ReactECharts option={tasksPerDevSprintOption} className={styles.chart260} />
-            ) : (
+              ) : (
                 <EmptyState />
-            )}
+              )}
             </ChartCard>
 
             <ChartCard title="Horas Reales por Desarrollador / Sprint">
-            {devPerf.length > 0 && allSprintNames.length > 0 ? (
+              {loadingDeveloperCharts ? (
+                <ChartLoading />
+              ) : hasDeveloperChartData ? (
                 <ReactECharts option={hrsPerDevSprintOption} className={styles.chart260} />
-            ) : (
+              ) : (
                 <EmptyState />
-            )}
+              )}
             </ChartCard>
-        </div>
+          </div>
 
-        {/* Row: Responsabilidad Individual + Productividad Histórica + Carga de Trabajo */}
-        <div className={styles.chartGridThree}>
-            <ChartCard title="Responsabilidad Individual (sprint activo)">
-            {devPerf.length > 0 ? (
-                <ReactECharts option={hbarOption} className={styles.chart210} />
-            ) : (
-                <EmptyState />
-            )}
-            </ChartCard>
+          {showGlobalDeveloperCharts && (
+            <div className={styles.chartGridThree}>
+              <ChartCard title="Responsabilidad Individual (alcance seleccionado)">
+                {loadingDeveloperCharts ? (
+                  <ChartLoading />
+                ) : hasDeveloperChartData ? (
+                  <ReactECharts option={hbarOption} className={styles.chart210} />
+                ) : (
+                  <EmptyState />
+                )}
+              </ChartCard>
 
-            <ChartCard title="Productividad Histórica por Desarrollador">
-            {devPerf.length > 0 && allSprintNames.length > 0 ? (
-                <ReactECharts option={multilineOption} className={styles.chart210} />
-            ) : (
-                <EmptyState />
-            )}
-            </ChartCard>
+              <ChartCard title="Productividad Histórica por Desarrollador">
+                {loadingDeveloperCharts ? (
+                  <ChartLoading />
+                ) : hasDeveloperChartData ? (
+                  <ReactECharts option={multilineOption} className={styles.chart210} />
+                ) : (
+                  <EmptyState />
+                )}
+              </ChartCard>
 
-            <ChartCard title="Carga de Trabajo (hrs por sprint)">
-            {devPerf.length > 0 && allSprintNames.length > 0 ? (
-                <ReactECharts option={workloadOption} className={styles.chart210} />
-            ) : (
-                <EmptyState />
-            )}
-            </ChartCard>
-        </div>
-        </div>
-    );
+              <ChartCard title="Carga de Trabajo (hrs por sprint)">
+                {loadingDeveloperCharts ? (
+                  <ChartLoading />
+                ) : hasDeveloperChartData ? (
+                  <ReactECharts option={workloadOption} className={styles.chart210} />
+                ) : (
+                  <EmptyState />
+                )}
+              </ChartCard>
+            </div>
+          )}
+        </>
+      ) : null}
+    </div>
+  );
 };
 
-// ── Helper sub-components ────────────────────────────────────────────────────
-
-type KpiTone =
-    | "blue"
-    | "green"
-    | "orange"
-    | "red";
+type KpiTone = "blue" | "green" | "orange" | "red";
 
 const KPI_TONE_CLASS: Record<KpiTone, string> = {
-    blue: styles.kpiBlue,
-    green: styles.kpiGreen,
-    orange: styles.kpiOrange,
-    red: styles.kpiRed,
+  blue: styles.kpiBlue,
+  green: styles.kpiGreen,
+  orange: styles.kpiOrange,
+  red: styles.kpiRed,
 };
 
 const getPercentKpiTone = (value: number | null): KpiTone => {
-    if (value === null) return "blue";
-    if (value >= 80) return "green";
-    if (value >= 50) return "orange";
-    return "red";
+  if (value === null) return "blue";
+  if (value >= 80) return "green";
+  if (value >= 50) return "orange";
+  return "red";
 };
 
 const getAccuracyKpiTone = (value: number | null): KpiTone => {
-    if (value === null) return "blue";
-    if (value > 0.9) return "green";
-    if (value >= 0.6) return "orange";
-    return "red";
+  if (value === null) return "blue";
+  if (value > 0.9) return "green";
+  if (value >= 0.6) return "orange";
+  return "red";
 };
 
 const KpiCard = ({
-    label,
-    value,
-    tone,
+  label,
+  value,
+  tone,
 }: {
-    label: string;
-    value: string;
-    tone: KpiTone;
+  label: string;
+  value: string;
+  tone: KpiTone;
 }) => (
-    <div className={`${styles.kpiCard} ${KPI_TONE_CLASS[tone]}`}>
-        <span className={styles.kpiLabel}>{label}</span>
-        <span className={styles.kpiValue}>{value}</span>
-    </div>
+  <div className={`${styles.kpiCard} ${KPI_TONE_CLASS[tone]}`}>
+    <span className={styles.kpiLabel}>{label}</span>
+    <span className={styles.kpiValue}>{value}</span>
+  </div>
 );
 
 const ChartCard = ({ title, children }: { title: string; children: ReactNode }) => (
-    <div className={styles.chartCard}>
-        <h3 className={styles.chartTitle}>{title}</h3>
-        {children}
-    </div>
+  <div className={styles.chartCard}>
+    <h3 className={styles.chartTitle}>{title}</h3>
+    {children}
+  </div>
 );
 
 const EmptyState = () => (
-    <div className={styles.emptyState}>
-        Sin datos suficientes
-    </div>
+  <div className={styles.emptyState}>
+    Sin datos suficientes
+  </div>
+);
+
+const ChartLoading = () => (
+  <div className={styles.emptyState}>
+    <CircularProgress size={22} />
+  </div>
 );
