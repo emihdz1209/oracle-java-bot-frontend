@@ -19,15 +19,8 @@ import {
   removeUserFromTask,
 } from "@/features/tareas/services/tareaService";
 import {
-  backfillTaskEmbeddings,
-  backfillVectorEmbeddings,
-  getEmbeddingsStatus,
-  startDuplicateDetection,
-  getDuplicateDetectionLatest,
-  startSemanticDuplicateDetection,
-  getSemanticDuplicateDetectionLatest,
-  startVectorDuplicateDetection,
-  getVectorDuplicateDetectionLatest,
+  startOracleVectorSearch,
+  getOracleVectorSearchLatest,
 } from "@/features/agent/services/aiDuplicateDetectionService";
 import type {
   DuplicateDetectionLatestResponse,
@@ -41,76 +34,30 @@ const normalizeId = (value: string) => value.trim().toLowerCase();
 
 const PIPELINE_LABELS: Record<PipelineStep, string> = {
   idle: "",
-  backfill_semantic: "Generando embeddings semanticos...",
-  waiting_semantic: "Esperando embeddings semanticos...",
-  backfill_vector: "Preparando vectores en Oracle...",
-  waiting_vector: "Confirmando Oracle Vector Search...",
-  running_engines: "Ejecutando motores de deteccion...",
+  preparing_oracle_vectors: "Preparando vectores para Oracle AI Vector Search...",
+  confirming_oracle_vector_search: "Confirmando Oracle AI Vector Search...",
+  running_oracle_vector_search: "Ejecutando Oracle AI Vector Search...",
   completed: "Comparacion completada.",
   error: "Error en el proceso.",
 };
 
 const PIPELINE_PROGRESS: Record<PipelineStep, number> = {
   idle: 0,
-  backfill_semantic: 10,
-  waiting_semantic: 25,
-  backfill_vector: 40,
-  waiting_vector: 55,
-  running_engines: 70,
+  preparing_oracle_vectors: 20,
+  confirming_oracle_vector_search: 55,
+  running_oracle_vector_search: 75,
   completed: 100,
   error: 0,
 };
 
-type EngineKey = "llm" | "semantic" | "vector";
-
-const ENGINE_META: { key: EngineKey; title: string; description: string }[] = [
-  {
-    key: "llm",
-    title: "LLM Directo",
-    description: "Analisis directo con modelo de lenguaje.",
-  },
-  {
-    key: "semantic",
-    title: "Python Embeddings",
-    description: "Comparacion basada en embeddings semanticos.",
-  },
-  {
-    key: "vector",
-    title: "Oracle AI Vector Search",
-    description: "Busqueda vectorial nativa de Oracle Database.",
-  },
-];
-
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const ORACLE_PHASE_DELAY_MS = 900;
 
-async function pollForSemanticEmbeddings(projectId: string): Promise<void> {
-  for (;;) {
-    const status = await getEmbeddingsStatus(projectId);
-    if (status.semanticEmbeddings >= status.totalTasks && status.totalTasks > 0)
-      return;
-    await delay(3000);
-  }
-}
-
-async function pollForVectorEmbeddings(projectId: string): Promise<void> {
-  for (;;) {
-    const status = await getEmbeddingsStatus(projectId);
-    if (
-      status.readyForVectorSearch &&
-      status.vectorEmbeddings >= status.totalTasks &&
-      status.totalTasks > 0
-    )
-      return;
-    await delay(3000);
-  }
-}
-
-async function pollEngineLatest(
-  fetcher: (pid: string) => Promise<DuplicateDetectionLatestResponse>,
+async function pollOracleVectorSearchLatest(
   projectId: string
 ): Promise<DuplicateDetectionLatestResponse> {
   for (;;) {
-    const result = await fetcher(projectId);
+    const result = await getOracleVectorSearchLatest(projectId);
     if (result.run?.status === "COMPLETED" || result.run?.status === "FAILED") {
       return result;
     }
@@ -139,22 +86,9 @@ export const AgentDuplicateDetectionPage = () => {
   const [pipelineError, setPipelineError] = useState<string | null>(null);
   const pipelineRanRef = useRef(false);
 
-  // Results from 3 engines
-  const [llmData, setLlmData] =
+  const [oracleData, setOracleData] =
     useState<DuplicateDetectionLatestResponse | null>(null);
-  const [semanticData, setSemanticData] =
-    useState<DuplicateDetectionLatestResponse | null>(null);
-  const [vectorData, setVectorData] =
-    useState<DuplicateDetectionLatestResponse | null>(null);
-
-  // Collapsed panels
-  const [collapsedEngines, setCollapsedEngines] = useState<
-    Record<EngineKey, boolean>
-  >({
-    llm: false,
-    semantic: false,
-    vector: false,
-  });
+  const [isOraclePanelCollapsed, setIsOraclePanelCollapsed] = useState(false);
 
   const { data: project } = useProyecto(projectId);
   const deleteMutation = useDeleteTarea(projectId);
@@ -166,36 +100,19 @@ export const AgentDuplicateDetectionPage = () => {
   const runPipeline = useCallback(
     async (pid: string, th: number) => {
       try {
-        setPipelineStep("backfill_semantic");
-        await backfillTaskEmbeddings(pid);
+        setPipelineStep("preparing_oracle_vectors");
+        await delay(ORACLE_PHASE_DELAY_MS);
 
-        setPipelineStep("waiting_semantic");
-        await pollForSemanticEmbeddings(pid);
+        setPipelineStep("confirming_oracle_vector_search");
+        await delay(ORACLE_PHASE_DELAY_MS);
 
-        setPipelineStep("backfill_vector");
-        await backfillVectorEmbeddings(pid);
-
-        setPipelineStep("waiting_vector");
-        await pollForVectorEmbeddings(pid);
-
-        setPipelineStep("running_engines");
+        setPipelineStep("running_oracle_vector_search");
         const payload = { threshold: th };
 
-        await Promise.all([
-          startDuplicateDetection(pid, payload),
-          startSemanticDuplicateDetection(pid, payload),
-          startVectorDuplicateDetection(pid, payload),
-        ]);
+        await startOracleVectorSearch(pid, payload);
+        const oracleResult = await pollOracleVectorSearchLatest(pid);
 
-        const [llmResult, semanticResult, vectorResult] = await Promise.all([
-          pollEngineLatest(getDuplicateDetectionLatest, pid),
-          pollEngineLatest(getSemanticDuplicateDetectionLatest, pid),
-          pollEngineLatest(getVectorDuplicateDetectionLatest, pid),
-        ]);
-
-        setLlmData(llmResult);
-        setSemanticData(semanticResult);
-        setVectorData(vectorResult);
+        setOracleData(oracleResult);
         setPipelineStep("completed");
       } catch (error) {
         setPipelineStep("error");
@@ -229,22 +146,18 @@ export const AgentDuplicateDetectionPage = () => {
   useEffect(() => {
     if (!shouldStartPipeline && projectId && !pipelineRanRef.current) {
       pipelineRanRef.current = true;
-      setPipelineStep("running_engines");
+      setPipelineStep("running_oracle_vector_search");
 
-      Promise.all([
-        getDuplicateDetectionLatest(projectId).catch(() => null),
-        getSemanticDuplicateDetectionLatest(projectId).catch(() => null),
-        getVectorDuplicateDetectionLatest(projectId).catch(() => null),
-      ]).then(([llm, semantic, vector]) => {
-        setLlmData(llm);
-        setSemanticData(semantic);
-        setVectorData(vector);
+      getOracleVectorSearchLatest(projectId).then((oracle) => {
+        setOracleData(oracle);
+        setPipelineStep("completed");
+      }).catch(() => {
+        setOracleData(null);
         setPipelineStep("completed");
       });
     }
   }, [shouldStartPipeline, projectId]);
 
-  // Filter results by removed task IDs — shared across all 3 engines
   const filterResults = useCallback(
     (results: DuplicateDetectionResult[]) => {
       if (removedTaskIds.size === 0) return results;
@@ -257,33 +170,10 @@ export const AgentDuplicateDetectionPage = () => {
     [removedTaskIds]
   );
 
-  const llmResults = useMemo(
-    () => filterResults(llmData?.results ?? []),
-    [filterResults, llmData]
+  const oracleResults = useMemo(
+    () => filterResults(oracleData?.results ?? []),
+    [filterResults, oracleData]
   );
-  const semanticResults = useMemo(
-    () => filterResults(semanticData?.results ?? []),
-    [filterResults, semanticData]
-  );
-  const vectorResults = useMemo(
-    () => filterResults(vectorData?.results ?? []),
-    [filterResults, vectorData]
-  );
-
-  const resultsByEngine: Record<EngineKey, DuplicateDetectionResult[]> = {
-    llm: llmResults,
-    semantic: semanticResults,
-    vector: vectorResults,
-  };
-
-  const dataByEngine: Record<
-    EngineKey,
-    DuplicateDetectionLatestResponse | null
-  > = {
-    llm: llmData,
-    semantic: semanticData,
-    vector: vectorData,
-  };
 
   const handleDeleteTask = (
     taskId: string,
@@ -319,7 +209,7 @@ export const AgentDuplicateDetectionPage = () => {
 
       await deleteMutation.mutateAsync(taskId);
 
-      // Add to removed set — filters from ALL 3 engine lists at once
+      // Keep deleted tasks out of the currently displayed results.
       setRemovedTaskIds((current) => {
         const next = new Set(current);
         next.add(normalizeId(taskId));
@@ -343,10 +233,6 @@ export const AgentDuplicateDetectionPage = () => {
     } finally {
       setDeletingTaskId(null);
     }
-  };
-
-  const toggleCollapse = (engine: EngineKey) => {
-    setCollapsedEngines((prev) => ({ ...prev, [engine]: !prev[engine] }));
   };
 
   const isPipelineRunning =
@@ -393,14 +279,13 @@ export const AgentDuplicateDetectionPage = () => {
 
   // --- Pipeline step indicators ---
   const pipelineSteps: PipelineStep[] = [
-    "backfill_semantic",
-    "waiting_semantic",
-    "backfill_vector",
-    "waiting_vector",
-    "running_engines",
+    "preparing_oracle_vectors",
+    "confirming_oracle_vector_search",
+    "running_oracle_vector_search",
   ];
 
   const currentStepIndex = pipelineSteps.indexOf(pipelineStep);
+  const isOracleSearchFailed = oracleData?.run?.status === "FAILED";
 
   return (
     <div className="App">
@@ -426,7 +311,7 @@ export const AgentDuplicateDetectionPage = () => {
           <div>
             <h2>Analisis de tareas duplicadas</h2>
             <p className="page-subtitle">
-              Resultados de 3 motores de deteccion de duplicados.
+              Resultados de Oracle AI Vector Search.
             </p>
           </div>
         </div>
@@ -515,70 +400,60 @@ export const AgentDuplicateDetectionPage = () => {
         </Alert>
       )}
 
-      {/* 3 engine result panels */}
+      {/* Oracle AI Vector Search results */}
       {pipelineStep === "completed" && (
         <div className={styles.enginesContainer}>
-          {ENGINE_META.map(({ key, title, description }) => {
-            const data = dataByEngine[key];
-            const results = resultsByEngine[key];
-            const isCollapsed = collapsedEngines[key];
-            const isFailed = data?.run?.status === "FAILED";
-
-            return (
-              <div key={key} className={styles.enginePanel}>
-                <button
-                  type="button"
-                  className={styles.engineHeader}
-                  onClick={() => toggleCollapse(key)}
-                  aria-expanded={!isCollapsed}
+          <div className={styles.enginePanel}>
+            <button
+              type="button"
+              className={styles.engineHeader}
+              onClick={() => setIsOraclePanelCollapsed((current) => !current)}
+              aria-expanded={!isOraclePanelCollapsed}
+            >
+              <div className={styles.engineHeaderLeft}>
+                <span
+                  className={`${styles.engineChevron} ${
+                    isOraclePanelCollapsed ? styles.engineChevronCollapsed : ""
+                  }`}
                 >
-                  <div className={styles.engineHeaderLeft}>
-                    <span
-                      className={`${styles.engineChevron} ${
-                        isCollapsed ? styles.engineChevronCollapsed : ""
-                      }`}
-                    >
-                      &#9660;
-                    </span>
-                    <span className={styles.engineTitle}>{title}</span>
-                    <span className={styles.engineCount}>
-                      {isFailed ? "Error" : `${results.length} pares`}
-                    </span>
-                  </div>
-                  <span className={styles.engineDescription}>
-                    {description}
-                  </span>
-                </button>
+                  &#9660;
+                </span>
+                <span className={styles.engineTitle}>Oracle AI Vector Search</span>
+                <span className={styles.engineCount}>
+                  {isOracleSearchFailed ? "Error" : `${oracleResults.length} pares`}
+                </span>
+              </div>
+              <span className={styles.engineDescription}>
+                Busqueda vectorial nativa de Oracle Database.
+              </span>
+            </button>
 
-                {!isCollapsed && (
-                  <div className={styles.engineBody}>
-                    {!data ? (
-                      <p className={styles.emptyState}>
-                        No hay resultados disponibles para este motor.
-                      </p>
-                    ) : isFailed ? (
-                      <Alert severity="error">
-                        {data.run.errorMessage ??
-                          "La deteccion fallo para este motor."}
-                      </Alert>
-                    ) : (
-                      <AgentDuplicateDetectionResultsTable
-                        results={results}
-                        deletingTaskId={deletingTaskId}
-                        onDeleteTask={handleDeleteTask}
-                        showDistance={key === "vector"}
-                      />
-                    )}
-                  </div>
+            {!isOraclePanelCollapsed && (
+              <div className={styles.engineBody}>
+                {!oracleData ? (
+                  <p className={styles.emptyState}>
+                    No hay resultados disponibles para Oracle AI Vector Search.
+                  </p>
+                ) : isOracleSearchFailed ? (
+                  <Alert severity="error">
+                    {oracleData.run.errorMessage ??
+                      "La deteccion fallo para Oracle AI Vector Search."}
+                  </Alert>
+                ) : (
+                  <AgentDuplicateDetectionResultsTable
+                    results={oracleResults}
+                    deletingTaskId={deletingTaskId}
+                    onDeleteTask={handleDeleteTask}
+                  />
                 )}
               </div>
-            );
-          })}
+            )}
+          </div>
         </div>
       )}
 
       {/* Loading fallback for direct navigation */}
-      {isPipelineRunning && pipelineStep === "running_engines" && (
+      {isPipelineRunning && pipelineStep === "running_oracle_vector_search" && (
         <div className={styles.loadingState}>
           <CircularProgress size={26} />
           <p className={styles.loadingText}>Cargando resultados...</p>
@@ -598,7 +473,7 @@ export const AgentDuplicateDetectionPage = () => {
             deshacer.
           </p>
           <p className={styles.deleteWarningHint}>
-            La tarea sera eliminada y removida de las 3 listas de resultados.
+            La tarea sera eliminada y removida de los resultados.
           </p>
           <div
             style={{

@@ -26,23 +26,16 @@ const ensureHyphenatedUuid = (id: string) => {
 
 const normalizeId = (value: string) => ensureHyphenatedUuid(value);
 
-const resolveMethodSegment = (methodSegment: string) => {
-  if (methodSegment === "semantic-duplicate-detection") return "duplicate-detection/semantic";
-  if (methodSegment === "vector-duplicate-detection") return "duplicate-detection/vector";
-  return methodSegment;
-};
-
-const buildBasePath = (projectId: string, methodSegment: string) => {
+const buildBasePath = (projectId: string) => {
   const pid = normalizeId(projectId);
-  return `/api/projects/${pid}/ai/${resolveMethodSegment(methodSegment)}`;
+  return `/api/projects/${pid}/ai/duplicate-detection`;
 };
 
-export const startDuplicateDetectionFor = async (
-  methodSegment: string,
+export const startOracleVectorSearch = async (
   projectId: string,
   payload: StartDuplicateDetectionRequest
 ): Promise<DuplicateDetectionRun> => {
-  const path = buildBasePath(projectId, methodSegment);
+  const path = buildBasePath(projectId);
   const response = await apiClient.post<DuplicateDetectionRun>(
     `${path}`,
     payload
@@ -50,34 +43,31 @@ export const startDuplicateDetectionFor = async (
   return response.data;
 };
 
-export const getDuplicateDetectionLatestFor = async (
-  methodSegment: string,
+export const getOracleVectorSearchLatest = async (
   projectId: string
 ): Promise<DuplicateDetectionLatestResponse> => {
-  const path = buildBasePath(projectId, methodSegment);
+  const path = buildBasePath(projectId);
   const response = await apiClient.get<DuplicateDetectionLatestResponse>(
     `${path}/latest`
   );
   return response.data;
 };
 
-export const getDuplicateDetectionRunsFor = async (
-  methodSegment: string,
+export const getOracleVectorSearchRuns = async (
   projectId: string
 ): Promise<DuplicateDetectionRun[]> => {
-  const path = buildBasePath(projectId, methodSegment);
+  const path = buildBasePath(projectId);
   const response = await apiClient.get<DuplicateDetectionRun[]>(`${path}/runs`);
   return response.data;
 };
 
-export const getDuplicateDetectionRunResultsFor = async (
-  methodSegment: string,
+export const getOracleVectorSearchRunResults = async (
   projectId: string,
   runId: string
 ): Promise<DuplicateDetectionResult[]> => {
   const pid = normalizeId(projectId);
   const rid = normalizeId(runId);
-  const path = `/api/projects/${pid}/ai/${resolveMethodSegment(methodSegment)}/runs/${rid}/results`;
+  const path = `/api/projects/${pid}/ai/duplicate-detection/runs/${rid}/results`;
   const response = await apiClient.get<DuplicateDetectionResult[]>(path);
   return response.data;
 };
