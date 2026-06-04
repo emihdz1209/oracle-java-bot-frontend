@@ -62,3 +62,15 @@ export const PROJECT_DASHBOARD_KPIS = `
     }
   }
 `;
+
+export const GITHUB_CONTRIBUTIONS = `
+  query GitHubContributions($projectId: ID!) {
+    githubContributions(projectId: $projectId) {
+      name
+      githubUsername
+      totalCommits
+      openedIssues
+      closedIssues
+    }
+  }
+`;

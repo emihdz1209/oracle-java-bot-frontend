@@ -110,6 +110,13 @@
   margin-bottom: 24px;
 }
 
+.kpiGridGithub {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .chartGridTwo {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -129,6 +136,10 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 8px;
+}
+
+.githubSection {
+  margin-top: 16px;
 }
 
 .kpiCard {
@@ -238,6 +249,30 @@
   font-size: 0.82rem;
 }
 
+.unavailableState {
+  height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 18px;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.unavailableText {
+  color: var(--text-2);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.unavailableHint {
+  max-width: 360px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
 @media (max-width: 1280px) {
   .kpiGridPrimary {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -245,6 +280,10 @@
 
   .kpiGridSecondary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpiGridGithub {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .chartGridThree {
@@ -270,6 +309,7 @@
 
   .kpiGridPrimary,
   .kpiGridSecondary,
+  .kpiGridGithub,
   .chartGridTwo,
   .chartGridBottom {
     grid-template-columns: 1fr;

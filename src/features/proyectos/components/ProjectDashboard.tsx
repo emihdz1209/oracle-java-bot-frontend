@@ -14,6 +14,7 @@ import {
   ALL_DASHBOARD_FILTER,
   useDashboardDeveloperOptions,
   useDashboardSprintOptions,
+  useGitHubContributions,
   useProjectDashboardKpis,
   useProjectDashboardKpisByDeveloper,
 } from "@/features/proyectos/hooks/useProyectos";
@@ -76,6 +77,9 @@ const formatPercentSmart = (value: number | null | undefined) =>
 const formatHours = (value: number | null | undefined) =>
   `${formatSmartNumber(value, 1)} hrs`;
 
+const normalizeName = (value: string | null | undefined) =>
+  value?.trim().toLocaleLowerCase("es") ?? "";
+
 const getHistoryItem = (
   dashboard: ProjectDashboardKpis,
   sprint: ProjectDashboardSprintHistoryItem
@@ -106,6 +110,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     selectedSprintId,
     selectedDeveloperId
   );
+  const githubContributionsQuery = useGitHubContributions(projectId);
 
   const sprintOptions = useMemo(
     () => [ALL_SPRINT_OPTION, ...(sprintOptionsQuery.data ?? [])],
@@ -116,6 +121,14 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     () => [ALL_DEVELOPER_OPTION, ...(developerOptionsQuery.data ?? [])],
     [developerOptionsQuery.data]
   );
+
+  const selectedDeveloperOption = useMemo(() => {
+    if (selectedDeveloperId === ALL_DASHBOARD_FILTER) {
+      return null;
+    }
+
+    return developerOptions.find((developer) => developer.id === selectedDeveloperId) ?? null;
+  }, [developerOptions, selectedDeveloperId]);
 
   const developerChartIds = useMemo(() => {
     if (selectedDeveloperId !== ALL_DASHBOARD_FILTER) {
@@ -150,6 +163,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
       sprintOptionsQuery.error,
       developerOptionsQuery.error,
       dashboardQuery.error,
+      githubContributionsQuery.error,
       ...developerKpisQueries.map((query) => query.error),
     ].filter(Boolean);
 
@@ -160,6 +174,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     dashboardQuery.error,
     developerKpisQueries,
     developerOptionsQuery.error,
+    githubContributionsQuery.error,
     sprintOptionsQuery.error,
   ]);
 
@@ -167,6 +182,50 @@ export const ProjectDashboard = ({ projectId }: Props) => {
   const summary = dashboardData?.summary;
   const sprintHistory = dashboardData?.sprintHistory ?? [];
   const sprintNames = sprintHistory.map((item) => item.sprintName);
+  const githubContributions = useMemo(
+    () => githubContributionsQuery.data ?? [],
+    [githubContributionsQuery.data]
+  );
+
+  const filteredGitHubContributions = useMemo(() => {
+    if (selectedDeveloperId === ALL_DASHBOARD_FILTER) {
+      return githubContributions;
+    }
+
+    const selectedName = normalizeName(
+      selectedDeveloperOption?.name ?? dashboardData?.developerName
+    );
+
+    if (!selectedName) {
+      return [];
+    }
+
+    return githubContributions.filter(
+      (contribution) => normalizeName(contribution.name) === selectedName
+    );
+  }, [
+    dashboardData?.developerName,
+    githubContributions,
+    selectedDeveloperId,
+    selectedDeveloperOption?.name,
+  ]);
+
+  const githubSummary = useMemo(
+    () =>
+      filteredGitHubContributions.reduce(
+        (totals, contribution) => ({
+          totalCommits: totals.totalCommits + contribution.totalCommits,
+          openedIssues: totals.openedIssues + contribution.openedIssues,
+          closedIssues: totals.closedIssues + contribution.closedIssues,
+        }),
+        {
+          totalCommits: 0,
+          openedIssues: 0,
+          closedIssues: 0,
+        }
+      ),
+    [filteredGitHubContributions]
+  );
 
   const developerDashboards = useMemo(() => {
     if (selectedDeveloperId !== ALL_DASHBOARD_FILTER) {
@@ -362,14 +421,121 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     })),
   };
 
+  const githubContributionNames = filteredGitHubContributions.map((contribution) =>
+    shortName(contribution.name || contribution.githubUsername || "Sin usuario")
+  );
+
+  const githubContributionsOption = {
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    legend: {
+      data: ["Commits", "Issues abiertos", "Issues cerrados"],
+      top: 0,
+      textStyle: { fontSize: 11 },
+    },
+    grid: { left: "3%", right: "4%", bottom: "10%", top: "56px", containLabel: true },
+    xAxis: {
+      type: "category",
+      data: githubContributionNames,
+      axisLabel: {
+        interval: 0,
+        rotate: githubContributionNames.length > 4 ? 25 : 0,
+        width: 90,
+        overflow: "truncate",
+      },
+    },
+    yAxis: { type: "value" },
+    series: [
+      {
+        name: "Commits",
+        type: "bar",
+        data: filteredGitHubContributions.map((contribution) => contribution.totalCommits),
+        itemStyle: { color: "#2563eb" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
+        },
+      },
+      {
+        name: "Issues abiertos",
+        type: "bar",
+        data: filteredGitHubContributions.map((contribution) => contribution.openedIssues),
+        itemStyle: { color: "#d97706" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
+        },
+      },
+      {
+        name: "Issues cerrados",
+        type: "bar",
+        data: filteredGitHubContributions.map((contribution) => contribution.closedIssues),
+        itemStyle: { color: "#16a34a" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
+        },
+      },
+    ],
+  };
+
+  const githubCommitShareData = filteredGitHubContributions
+    .filter((contribution) => contribution.totalCommits > 0)
+    .map((contribution) => ({
+      name: shortName(contribution.name || contribution.githubUsername || "Sin usuario"),
+      value: contribution.totalCommits,
+    }));
+
+  const githubCommitShareOption = {
+    tooltip: {
+      trigger: "item",
+      formatter: "{b}: {c} commits ({d}%)",
+    },
+    legend: {
+      bottom: 0,
+      textStyle: { fontSize: 11 },
+    },
+    color: DEV_COLORS,
+    series: [
+      {
+        name: "Commits",
+        type: "pie",
+        radius: ["48%", "72%"],
+        center: ["50%", "44%"],
+        avoidLabelOverlap: true,
+        itemStyle: {
+          borderColor: "#fff",
+          borderWidth: 2,
+        },
+        label: {
+          formatter: "{b}\n{d}%",
+          fontSize: 10,
+        },
+        data: githubCommitShareData,
+      },
+    ],
+  };
+
   const loadingOptions = sprintOptionsQuery.isLoading || developerOptionsQuery.isLoading;
   const loadingMetrics = dashboardQuery.isLoading && !dashboardData;
   const refreshingMetrics = dashboardQuery.isFetching && Boolean(dashboardData);
+  const loadingGitHubContributions =
+    githubContributionsQuery.isLoading && !githubContributionsQuery.data;
+  const refreshingGitHubContributions =
+    githubContributionsQuery.isFetching && Boolean(githubContributionsQuery.data);
   const loadingDeveloperCharts =
     selectedDeveloperId === ALL_DASHBOARD_FILTER &&
     developerKpisQueries.some((query) => query.isLoading || query.isFetching);
   const hasOptionsError = Boolean(sprintOptionsQuery.error || developerOptionsQuery.error);
   const hasMetricsError = Boolean(dashboardQuery.error);
+  const hasGitHubContributionsError = Boolean(githubContributionsQuery.error);
+  const hasGitHubContributions = filteredGitHubContributions.length > 0;
+  const hasGitHubCommitShareData = githubCommitShareData.length > 0;
   const hasSprintHistory = sprintHistory.length > 0;
   const hasDeveloperChartData = developerDashboards.length > 0 && hasSprintHistory;
   const showGlobalDeveloperCharts =
@@ -431,7 +597,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         </div>
       </div>
 
-      {refreshingMetrics && (
+      {(refreshingMetrics || refreshingGitHubContributions) && (
         <div className={styles.inlineLoading}>
           <CircularProgress size={16} />
           <span>Cargando métricas...</span>
@@ -585,6 +751,82 @@ export const ProjectDashboard = ({ projectId }: Props) => {
               </ChartCard>
             </div>
           )}
+
+          <div className={styles.githubSection}>
+            <div className={styles.kpiGridGithub}>
+              <KpiCard
+                label="Commits GitHub"
+                value={
+                  loadingGitHubContributions
+                    ? "--"
+                    : formatSmartNumber(githubSummary.totalCommits)
+                }
+                tone="blue"
+              />
+              <KpiCard
+                label="Issues abiertos"
+                value={
+                  loadingGitHubContributions
+                    ? "--"
+                    : formatSmartNumber(githubSummary.openedIssues)
+                }
+                tone="orange"
+              />
+              <KpiCard
+                label="Issues cerrados"
+                value={
+                  loadingGitHubContributions
+                    ? "--"
+                    : formatSmartNumber(githubSummary.closedIssues)
+                }
+                tone="green"
+              />
+            </div>
+
+            {hasGitHubContributionsError && (
+              <Alert severity="error" className={styles.dashboardAlert}>
+                No se pudieron cargar las metricas de GitHub.
+              </Alert>
+            )}
+
+            <div className={styles.chartGridTwo}>
+              <ChartCard title="Actividad tecnica por integrante">
+                {loadingGitHubContributions ? (
+                  <ChartLoading />
+                ) : hasGitHubContributions ? (
+                  <ReactECharts
+                    option={githubContributionsOption}
+                    className={styles.chart260}
+                  />
+                ) : (
+                  <EmptyState />
+                )}
+              </ChartCard>
+
+              <ChartCard title="Distribucion porcentual de commits">
+                {loadingGitHubContributions ? (
+                  <ChartLoading />
+                ) : hasGitHubCommitShareData ? (
+                  <ReactECharts
+                    option={githubCommitShareOption}
+                    className={styles.chart260}
+                  />
+                ) : (
+                  <EmptyState />
+                )}
+              </ChartCard>
+            </div>
+
+            <div className={styles.chartGridTwo}>
+              <ChartCard title="Issues por repositorio">
+                <UnavailableDataState message="El endpoint actual no devuelve issues agrupados por repositorio." />
+              </ChartCard>
+
+              <ChartCard title="Tendencia de commits por sprint">
+                <UnavailableDataState message="El endpoint actual no devuelve commits por sprint ni fecha de commit." />
+              </ChartCard>
+            </div>
+          </div>
         </>
       ) : null}
     </div>
@@ -645,5 +887,12 @@ const EmptyState = () => (
 const ChartLoading = () => (
   <div className={styles.emptyState}>
     <CircularProgress size={22} />
+  </div>
+);
+
+const UnavailableDataState = ({ message }: { message: string }) => (
+  <div className={styles.unavailableState}>
+    <span className={styles.unavailableText}>Dato no disponible</span>
+    <span className={styles.unavailableHint}>{message}</span>
   </div>
 );
