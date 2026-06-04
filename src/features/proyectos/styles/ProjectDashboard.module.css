@@ -112,7 +112,7 @@
 
 .kpiGridGithub {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -140,6 +140,13 @@
 
 .githubSection {
   margin-top: 16px;
+}
+
+.githubSectionTitle {
+  margin: 0 0 12px;
+  color: var(--text-1);
+  font-size: 0.95rem;
+  font-weight: 800;
 }
 
 .kpiCard {
@@ -249,7 +256,7 @@
   font-size: 0.82rem;
 }
 
-.unavailableState {
+.filterUnavailableState {
   height: 260px;
   display: flex;
   align-items: center;
@@ -261,13 +268,13 @@
   text-align: center;
 }
 
-.unavailableText {
+.filterUnavailableText {
   color: var(--text-2);
   font-size: 0.82rem;
   font-weight: 800;
 }
 
-.unavailableHint {
+.filterUnavailableHint {
   max-width: 360px;
   font-size: 0.78rem;
   line-height: 1.35;

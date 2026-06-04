@@ -2,7 +2,7 @@ import { graphqlRequest } from "@/shared/api/graphqlClient";
 import {
   DASHBOARD_DEVELOPER_OPTIONS,
   DASHBOARD_SPRINT_OPTIONS,
-  GITHUB_CONTRIBUTIONS,
+  GITHUB_KPIS,
   PROJECT_DASHBOARD_KPIS,
 } from "@/features/proyectos/graphql/dashboardKpiQueries";
 
@@ -63,6 +63,27 @@ export interface GitHubContribution {
   closedIssues: number;
 }
 
+export interface GitHubSprintActivity {
+  sprintName: string;
+  totalCommits: number;
+  openedIssues: number;
+  closedIssues: number;
+}
+
+export interface GitHubRepositoryActivity {
+  owner: string;
+  repoName: string;
+  totalCommits: number;
+  openedIssues: number;
+  closedIssues: number;
+}
+
+export interface GitHubKpis {
+  contributions: GitHubContribution[];
+  sprintActivity: GitHubSprintActivity[];
+  repositoryActivity: GitHubRepositoryActivity[];
+}
+
 interface DashboardSprintOptionsData {
   dashboardSprintOptions: DashboardSprintOption[];
 }
@@ -75,8 +96,10 @@ interface ProjectDashboardKpisData {
   projectDashboardKpis: ProjectDashboardKpis;
 }
 
-interface GitHubContributionsData {
+interface GitHubKpisData {
   githubContributions: GitHubContribution[];
+  githubSprintActivity: GitHubSprintActivity[];
+  githubRepositoryActivity: GitHubRepositoryActivity[];
 }
 
 interface ProjectDashboardOptionsVariables {
@@ -158,14 +181,18 @@ export const getProjectDashboardKpis = async (
   return data.projectDashboardKpis;
 };
 
-export const getGitHubContributions = async (projectId: string) => {
+export const getGitHubKpis = async (projectId: string): Promise<GitHubKpis> => {
   const data = await graphqlRequest<
-    GitHubContributionsData,
+    GitHubKpisData,
     ProjectDashboardOptionsVariables
   >(
-    GITHUB_CONTRIBUTIONS,
+    GITHUB_KPIS,
     { projectId }
   );
 
-  return data.githubContributions;
+  return {
+    contributions: data.githubContributions,
+    sprintActivity: data.githubSprintActivity,
+    repositoryActivity: data.githubRepositoryActivity,
+  };
 };

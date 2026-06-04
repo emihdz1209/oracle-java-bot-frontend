@@ -23,7 +23,7 @@ import {
 import {
   getDashboardDeveloperOptions,
   getDashboardSprintOptions,
-  getGitHubContributions,
+  getGitHubKpis,
   getProjectDashboardKpis,
 } from "@/features/proyectos/services/projectDashboardGraphqlService";
 import type {
@@ -175,10 +175,10 @@ export const useProjectDashboardKpisByDeveloper = (
   });
 };
 
-export const useGitHubContributions = (projectId?: string) => {
+export const useGitHubKpis = (projectId?: string) => {
   return useQuery({
-    queryKey: ["githubContributions", projectId],
-    queryFn: () => getGitHubContributions(projectId!),
+    queryKey: ["githubKpis", projectId],
+    queryFn: () => getGitHubKpis(projectId!),
     enabled: !!projectId,
   });
 };

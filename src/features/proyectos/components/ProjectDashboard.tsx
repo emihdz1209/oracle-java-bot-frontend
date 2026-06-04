@@ -14,7 +14,7 @@ import {
   ALL_DASHBOARD_FILTER,
   useDashboardDeveloperOptions,
   useDashboardSprintOptions,
-  useGitHubContributions,
+  useGitHubKpis,
   useProjectDashboardKpis,
   useProjectDashboardKpisByDeveloper,
 } from "@/features/proyectos/hooks/useProyectos";
@@ -80,6 +80,9 @@ const formatHours = (value: number | null | undefined) =>
 const normalizeName = (value: string | null | undefined) =>
   value?.trim().toLocaleLowerCase("es") ?? "";
 
+const formatRepositoryLabel = (repoName: string) =>
+  repoName.replace(/^oracle-java-bot-/, "");
+
 const getHistoryItem = (
   dashboard: ProjectDashboardKpis,
   sprint: ProjectDashboardSprintHistoryItem
@@ -110,7 +113,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     selectedSprintId,
     selectedDeveloperId
   );
-  const githubContributionsQuery = useGitHubContributions(projectId);
+  const githubKpisQuery = useGitHubKpis(projectId);
 
   const sprintOptions = useMemo(
     () => [ALL_SPRINT_OPTION, ...(sprintOptionsQuery.data ?? [])],
@@ -129,6 +132,14 @@ export const ProjectDashboard = ({ projectId }: Props) => {
 
     return developerOptions.find((developer) => developer.id === selectedDeveloperId) ?? null;
   }, [developerOptions, selectedDeveloperId]);
+
+  const selectedSprintOption = useMemo(() => {
+    if (selectedSprintId === ALL_DASHBOARD_FILTER) {
+      return null;
+    }
+
+    return sprintOptions.find((sprint) => sprint.id === selectedSprintId) ?? null;
+  }, [selectedSprintId, sprintOptions]);
 
   const developerChartIds = useMemo(() => {
     if (selectedDeveloperId !== ALL_DASHBOARD_FILTER) {
@@ -163,7 +174,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
       sprintOptionsQuery.error,
       developerOptionsQuery.error,
       dashboardQuery.error,
-      githubContributionsQuery.error,
+      githubKpisQuery.error,
       ...developerKpisQueries.map((query) => query.error),
     ].filter(Boolean);
 
@@ -174,7 +185,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     dashboardQuery.error,
     developerKpisQueries,
     developerOptionsQuery.error,
-    githubContributionsQuery.error,
+    githubKpisQuery.error,
     sprintOptionsQuery.error,
   ]);
 
@@ -182,9 +193,18 @@ export const ProjectDashboard = ({ projectId }: Props) => {
   const summary = dashboardData?.summary;
   const sprintHistory = dashboardData?.sprintHistory ?? [];
   const sprintNames = sprintHistory.map((item) => item.sprintName);
+  const githubKpis = githubKpisQuery.data;
   const githubContributions = useMemo(
-    () => githubContributionsQuery.data ?? [],
-    [githubContributionsQuery.data]
+    () => githubKpis?.contributions ?? [],
+    [githubKpis?.contributions]
+  );
+  const githubSprintActivity = useMemo(
+    () => githubKpis?.sprintActivity ?? [],
+    [githubKpis?.sprintActivity]
+  );
+  const githubRepositoryActivity = useMemo(
+    () => githubKpis?.repositoryActivity ?? [],
+    [githubKpis?.repositoryActivity]
   );
 
   const filteredGitHubContributions = useMemo(() => {
@@ -225,6 +245,38 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         }
       ),
     [filteredGitHubContributions]
+  );
+  const githubIssueClosureRate =
+    githubSummary.openedIssues === 0
+      ? 0
+      : (githubSummary.closedIssues / githubSummary.openedIssues) * 100;
+
+  const filteredGitHubSprintActivity = useMemo(() => {
+    if (selectedSprintId === ALL_DASHBOARD_FILTER) {
+      return githubSprintActivity;
+    }
+
+    const selectedSprintName = normalizeName(
+      selectedSprintOption?.name ?? dashboardData?.sprintName
+    );
+
+    if (!selectedSprintName) {
+      return [];
+    }
+
+    return githubSprintActivity.filter(
+      (sprint) => normalizeName(sprint.sprintName) === selectedSprintName
+    );
+  }, [
+    dashboardData?.sprintName,
+    githubSprintActivity,
+    selectedSprintId,
+    selectedSprintOption?.name,
+  ]);
+
+  const activeRepositories = useMemo(
+    () => githubRepositoryActivity.length,
+    [githubRepositoryActivity]
   );
 
   const developerDashboards = useMemo(() => {
@@ -428,7 +480,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
   const githubContributionsOption = {
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
     legend: {
-      data: ["Commits", "Issues abiertos", "Issues cerrados"],
+      data: ["Commits", "Issues creados", "Issues cerrados"],
       top: 0,
       textStyle: { fontSize: 11 },
     },
@@ -458,7 +510,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         },
       },
       {
-        name: "Issues abiertos",
+        name: "Issues creados",
         type: "bar",
         data: filteredGitHubContributions.map((contribution) => contribution.openedIssues),
         itemStyle: { color: "#d97706" },
@@ -521,23 +573,150 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     ],
   };
 
+  const githubSprintNames = filteredGitHubSprintActivity.map(
+    (sprint) => sprint.sprintName
+  );
+
+  const githubSprintActivityOption = {
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    legend: {
+      data: ["Commits", "Issues creados", "Issues cerrados"],
+      top: 0,
+      textStyle: { fontSize: 11 },
+    },
+    grid: { left: "3%", right: "4%", bottom: "10%", top: "56px", containLabel: true },
+    xAxis: {
+      type: "category",
+      data: githubSprintNames,
+      axisLabel: {
+        interval: 0,
+        rotate: githubSprintNames.length > 5 ? 25 : 0,
+        width: 90,
+        overflow: "truncate",
+      },
+    },
+    yAxis: { type: "value" },
+    series: [
+      {
+        name: "Commits",
+        type: "bar",
+        data: filteredGitHubSprintActivity.map((sprint) => sprint.totalCommits),
+        itemStyle: { color: "#2563eb" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
+        },
+      },
+      {
+        name: "Issues creados",
+        type: "bar",
+        data: filteredGitHubSprintActivity.map((sprint) => sprint.openedIssues),
+        itemStyle: { color: "#d97706" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
+        },
+      },
+      {
+        name: "Issues cerrados",
+        type: "bar",
+        data: filteredGitHubSprintActivity.map((sprint) => sprint.closedIssues),
+        itemStyle: { color: "#16a34a" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
+        },
+      },
+    ],
+  };
+
+  const githubRepositoryNames = githubRepositoryActivity.map((repo) =>
+    formatRepositoryLabel(repo.repoName)
+  );
+
+  const githubRepositoryActivityOption = {
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    legend: {
+      data: ["Commits", "Issues creados", "Issues cerrados"],
+      top: 0,
+      textStyle: { fontSize: 11 },
+    },
+    grid: { left: "3%", right: "4%", bottom: "12%", top: "56px", containLabel: true },
+    xAxis: {
+      type: "category",
+      data: githubRepositoryNames,
+      axisLabel: {
+        interval: 0,
+        rotate: githubRepositoryNames.length > 3 ? 25 : 0,
+        width: 110,
+        overflow: "truncate",
+      },
+    },
+    yAxis: { type: "value" },
+    series: [
+      {
+        name: "Commits",
+        type: "bar",
+        data: githubRepositoryActivity.map((repo) => repo.totalCommits),
+        itemStyle: { color: "#2563eb" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
+        },
+      },
+      {
+        name: "Issues creados",
+        type: "bar",
+        data: githubRepositoryActivity.map((repo) => repo.openedIssues),
+        itemStyle: { color: "#d97706" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
+        },
+      },
+      {
+        name: "Issues cerrados",
+        type: "bar",
+        data: githubRepositoryActivity.map((repo) => repo.closedIssues),
+        itemStyle: { color: "#16a34a" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
+        },
+      },
+    ],
+  };
+
   const loadingOptions = sprintOptionsQuery.isLoading || developerOptionsQuery.isLoading;
   const loadingMetrics = dashboardQuery.isLoading && !dashboardData;
   const refreshingMetrics = dashboardQuery.isFetching && Boolean(dashboardData);
-  const loadingGitHubContributions =
-    githubContributionsQuery.isLoading && !githubContributionsQuery.data;
-  const refreshingGitHubContributions =
-    githubContributionsQuery.isFetching && Boolean(githubContributionsQuery.data);
+  const loadingGitHubKpis = githubKpisQuery.isLoading && !githubKpisQuery.data;
+  const refreshingGitHubKpis = githubKpisQuery.isFetching && Boolean(githubKpisQuery.data);
   const loadingDeveloperCharts =
     selectedDeveloperId === ALL_DASHBOARD_FILTER &&
     developerKpisQueries.some((query) => query.isLoading || query.isFetching);
   const hasOptionsError = Boolean(sprintOptionsQuery.error || developerOptionsQuery.error);
   const hasMetricsError = Boolean(dashboardQuery.error);
-  const hasGitHubContributionsError = Boolean(githubContributionsQuery.error);
+  const hasGitHubKpisError = Boolean(githubKpisQuery.error);
   const hasGitHubContributions = filteredGitHubContributions.length > 0;
   const hasGitHubCommitShareData = githubCommitShareData.length > 0;
+  const hasGitHubSprintActivity = filteredGitHubSprintActivity.length > 0;
+  const hasGitHubRepositoryActivity = githubRepositoryActivity.length > 0;
   const hasSprintHistory = sprintHistory.length > 0;
   const hasDeveloperChartData = developerDashboards.length > 0 && hasSprintHistory;
+  const hasSprintFilter = selectedSprintId !== ALL_DASHBOARD_FILTER;
   const showGlobalDeveloperCharts =
     selectedSprintId === ALL_DASHBOARD_FILTER &&
     selectedDeveloperId === ALL_DASHBOARD_FILTER;
@@ -597,7 +776,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         </div>
       </div>
 
-      {(refreshingMetrics || refreshingGitHubContributions) && (
+      {(refreshingMetrics || refreshingGitHubKpis) && (
         <div className={styles.inlineLoading}>
           <CircularProgress size={16} />
           <span>Cargando métricas...</span>
@@ -753,20 +932,22 @@ export const ProjectDashboard = ({ projectId }: Props) => {
           )}
 
           <div className={styles.githubSection}>
+            <h3 className={styles.githubSectionTitle}>GitHub Activity</h3>
+
             <div className={styles.kpiGridGithub}>
               <KpiCard
                 label="Commits GitHub"
                 value={
-                  loadingGitHubContributions
+                  loadingGitHubKpis
                     ? "--"
                     : formatSmartNumber(githubSummary.totalCommits)
                 }
                 tone="blue"
               />
               <KpiCard
-                label="Issues abiertos"
+                label="Issues creados"
                 value={
-                  loadingGitHubContributions
+                  loadingGitHubKpis
                     ? "--"
                     : formatSmartNumber(githubSummary.openedIssues)
                 }
@@ -775,15 +956,33 @@ export const ProjectDashboard = ({ projectId }: Props) => {
               <KpiCard
                 label="Issues cerrados"
                 value={
-                  loadingGitHubContributions
+                  loadingGitHubKpis
                     ? "--"
                     : formatSmartNumber(githubSummary.closedIssues)
                 }
                 tone="green"
               />
+              <KpiCard
+                label="Tasa de cierre"
+                value={
+                  loadingGitHubKpis
+                    ? "--"
+                    : formatPercentSmart(githubIssueClosureRate)
+                }
+                tone={getPercentKpiTone(githubIssueClosureRate)}
+              />
+              <KpiCard
+                label="Repos activos"
+                value={
+                  loadingGitHubKpis
+                    ? "--"
+                    : formatSmartNumber(activeRepositories)
+                }
+                tone="blue"
+              />
             </div>
 
-            {hasGitHubContributionsError && (
+            {hasGitHubKpisError && (
               <Alert severity="error" className={styles.dashboardAlert}>
                 No se pudieron cargar las metricas de GitHub.
               </Alert>
@@ -791,7 +990,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
 
             <div className={styles.chartGridTwo}>
               <ChartCard title="Actividad tecnica por integrante">
-                {loadingGitHubContributions ? (
+                {loadingGitHubKpis ? (
                   <ChartLoading />
                 ) : hasGitHubContributions ? (
                   <ReactECharts
@@ -804,8 +1003,10 @@ export const ProjectDashboard = ({ projectId }: Props) => {
               </ChartCard>
 
               <ChartCard title="Distribucion porcentual de commits">
-                {loadingGitHubContributions ? (
+                {loadingGitHubKpis ? (
                   <ChartLoading />
+                ) : hasSprintFilter ? (
+                  <FilterUnavailableState message="Falta actividad por integrante dentro del sprint seleccionado." />
                 ) : hasGitHubCommitShareData ? (
                   <ReactECharts
                     option={githubCommitShareOption}
@@ -818,12 +1019,32 @@ export const ProjectDashboard = ({ projectId }: Props) => {
             </div>
 
             <div className={styles.chartGridTwo}>
-              <ChartCard title="Issues por repositorio">
-                <UnavailableDataState message="El endpoint actual no devuelve issues agrupados por repositorio." />
+              <ChartCard title="Actividad GitHub por sprint">
+                {loadingGitHubKpis ? (
+                  <ChartLoading />
+                ) : hasGitHubSprintActivity ? (
+                  <ReactECharts
+                    option={githubSprintActivityOption}
+                    className={styles.chart260}
+                  />
+                ) : (
+                  <EmptyState />
+                )}
               </ChartCard>
 
-              <ChartCard title="Tendencia de commits por sprint">
-                <UnavailableDataState message="El endpoint actual no devuelve commits por sprint ni fecha de commit." />
+              <ChartCard title="Actividad GitHub por repositorio">
+                {loadingGitHubKpis ? (
+                  <ChartLoading />
+                ) : hasSprintFilter ? (
+                  <FilterUnavailableState message="Falta actividad por repositorio dentro del sprint seleccionado." />
+                ) : hasGitHubRepositoryActivity ? (
+                  <ReactECharts
+                    option={githubRepositoryActivityOption}
+                    className={styles.chart260}
+                  />
+                ) : (
+                  <EmptyState />
+                )}
               </ChartCard>
             </div>
           </div>
@@ -890,9 +1111,11 @@ const ChartLoading = () => (
   </div>
 );
 
-const UnavailableDataState = ({ message }: { message: string }) => (
-  <div className={styles.unavailableState}>
-    <span className={styles.unavailableText}>Dato no disponible</span>
-    <span className={styles.unavailableHint}>{message}</span>
+const FilterUnavailableState = ({ message }: { message: string }) => (
+  <div className={styles.filterUnavailableState}>
+    <span className={styles.filterUnavailableText}>
+      No disponible con filtro de sprint
+    </span>
+    <span className={styles.filterUnavailableHint}>{message}</span>
   </div>
 );
