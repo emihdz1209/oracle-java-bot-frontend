@@ -113,7 +113,11 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     selectedSprintId,
     selectedDeveloperId
   );
-  const githubKpisQuery = useGitHubKpis(projectId);
+  const githubKpisQuery = useGitHubKpis(
+    projectId,
+    selectedSprintId,
+    selectedDeveloperId
+  );
 
   const sprintOptions = useMemo(
     () => [ALL_SPRINT_OPTION, ...(sprintOptionsQuery.data ?? [])],
@@ -212,21 +216,29 @@ export const ProjectDashboard = ({ projectId }: Props) => {
       return githubContributions;
     }
 
+    const selectedUserId = selectedDeveloperOption?.id ?? dashboardData?.developerId;
+    const selectedEmail = normalizeName(selectedDeveloperOption?.email);
     const selectedName = normalizeName(
       selectedDeveloperOption?.name ?? dashboardData?.developerName
     );
 
-    if (!selectedName) {
+    if (!selectedUserId && !selectedEmail && !selectedName) {
       return [];
     }
 
     return githubContributions.filter(
-      (contribution) => normalizeName(contribution.name) === selectedName
+      (contribution) =>
+        contribution.userId === selectedUserId ||
+        normalizeName(contribution.email) === selectedEmail ||
+        normalizeName(contribution.name) === selectedName
     );
   }, [
+    dashboardData?.developerId,
     dashboardData?.developerName,
     githubContributions,
     selectedDeveloperId,
+    selectedDeveloperOption?.email,
+    selectedDeveloperOption?.id,
     selectedDeveloperOption?.name,
   ]);
 
@@ -236,11 +248,13 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         (totals, contribution) => ({
           totalCommits: totals.totalCommits + contribution.totalCommits,
           openedIssues: totals.openedIssues + contribution.openedIssues,
+          activeIssues: totals.activeIssues + contribution.activeIssues,
           closedIssues: totals.closedIssues + contribution.closedIssues,
         }),
         {
           totalCommits: 0,
           openedIssues: 0,
+          activeIssues: 0,
           closedIssues: 0,
         }
       ),
@@ -264,8 +278,10 @@ export const ProjectDashboard = ({ projectId }: Props) => {
       return [];
     }
 
-    return githubSprintActivity.filter(
-      (sprint) => normalizeName(sprint.sprintName) === selectedSprintName
+    return githubSprintActivity.filter((sprint) =>
+      sprint.sprintId
+        ? sprint.sprintId === selectedSprintId
+        : normalizeName(sprint.sprintName) === selectedSprintName
     );
   }, [
     dashboardData?.sprintName,
@@ -274,7 +290,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     selectedSprintOption?.name,
   ]);
 
-  const activeRepositories = useMemo(
+  const monitoredRepos = useMemo(
     () => githubRepositoryActivity.length,
     [githubRepositoryActivity]
   );
@@ -480,7 +496,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
   const githubContributionsOption = {
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
     legend: {
-      data: ["Commits", "Issues creados", "Issues cerrados"],
+      data: ["Commits", "Issues creados", "Issues activos", "Issues cerrados"],
       top: 0,
       textStyle: { fontSize: 11 },
     },
@@ -514,6 +530,18 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         type: "bar",
         data: filteredGitHubContributions.map((contribution) => contribution.openedIssues),
         itemStyle: { color: "#d97706" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
+        },
+      },
+      {
+        name: "Issues activos",
+        type: "bar",
+        data: filteredGitHubContributions.map((contribution) => contribution.activeIssues),
+        itemStyle: { color: "#0891b2" },
         label: {
           show: true,
           position: "top",
@@ -580,7 +608,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
   const githubSprintActivityOption = {
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
     legend: {
-      data: ["Commits", "Issues creados", "Issues cerrados"],
+      data: ["Commits", "Issues creados", "Issues activos", "Issues cerrados"],
       top: 0,
       textStyle: { fontSize: 11 },
     },
@@ -643,7 +671,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
   const githubRepositoryActivityOption = {
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
     legend: {
-      data: ["Commits", "Issues creados", "Issues cerrados"],
+      data: ["Commits", "Issues creados", "Issues activos", "Issues cerrados"],
       top: 0,
       textStyle: { fontSize: 11 },
     },
@@ -685,6 +713,18 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         },
       },
       {
+        name: "Issues activos",
+        type: "bar",
+        data: githubRepositoryActivity.map((repo) => repo.activeIssues),
+        itemStyle: { color: "#0891b2" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
+        },
+      },
+      {
         name: "Issues cerrados",
         type: "bar",
         data: githubRepositoryActivity.map((repo) => repo.closedIssues),
@@ -716,7 +756,6 @@ export const ProjectDashboard = ({ projectId }: Props) => {
   const hasGitHubRepositoryActivity = githubRepositoryActivity.length > 0;
   const hasSprintHistory = sprintHistory.length > 0;
   const hasDeveloperChartData = developerDashboards.length > 0 && hasSprintHistory;
-  const hasSprintFilter = selectedSprintId !== ALL_DASHBOARD_FILTER;
   const showGlobalDeveloperCharts =
     selectedSprintId === ALL_DASHBOARD_FILTER &&
     selectedDeveloperId === ALL_DASHBOARD_FILTER;
@@ -963,6 +1002,15 @@ export const ProjectDashboard = ({ projectId }: Props) => {
                 tone="green"
               />
               <KpiCard
+                label="Issues activos"
+                value={
+                  loadingGitHubKpis
+                    ? "--"
+                    : formatSmartNumber(githubSummary.activeIssues)
+                }
+                tone="blue"
+              />
+              <KpiCard
                 label="Tasa de cierre"
                 value={
                   loadingGitHubKpis
@@ -972,11 +1020,11 @@ export const ProjectDashboard = ({ projectId }: Props) => {
                 tone={getPercentKpiTone(githubIssueClosureRate)}
               />
               <KpiCard
-                label="Repos activos"
+                label="Repos monitoreados"
                 value={
                   loadingGitHubKpis
                     ? "--"
-                    : formatSmartNumber(activeRepositories)
+                    : formatSmartNumber(monitoredRepos)
                 }
                 tone="blue"
               />
@@ -1005,8 +1053,6 @@ export const ProjectDashboard = ({ projectId }: Props) => {
               <ChartCard title="Distribucion porcentual de commits">
                 {loadingGitHubKpis ? (
                   <ChartLoading />
-                ) : hasSprintFilter ? (
-                  <FilterUnavailableState message="Falta actividad por integrante dentro del sprint seleccionado." />
                 ) : hasGitHubCommitShareData ? (
                   <ReactECharts
                     option={githubCommitShareOption}
@@ -1035,8 +1081,6 @@ export const ProjectDashboard = ({ projectId }: Props) => {
               <ChartCard title="Actividad GitHub por repositorio">
                 {loadingGitHubKpis ? (
                   <ChartLoading />
-                ) : hasSprintFilter ? (
-                  <FilterUnavailableState message="Falta actividad por repositorio dentro del sprint seleccionado." />
                 ) : hasGitHubRepositoryActivity ? (
                   <ReactECharts
                     option={githubRepositoryActivityOption}
@@ -1108,14 +1152,5 @@ const EmptyState = () => (
 const ChartLoading = () => (
   <div className={styles.emptyState}>
     <CircularProgress size={22} />
-  </div>
-);
-
-const FilterUnavailableState = ({ message }: { message: string }) => (
-  <div className={styles.filterUnavailableState}>
-    <span className={styles.filterUnavailableText}>
-      No disponible con filtro de sprint
-    </span>
-    <span className={styles.filterUnavailableHint}>{message}</span>
   </div>
 );

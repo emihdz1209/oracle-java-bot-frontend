@@ -175,10 +175,19 @@ export const useProjectDashboardKpisByDeveloper = (
   });
 };
 
-export const useGitHubKpis = (projectId?: string) => {
+export const useGitHubKpis = (
+  projectId?: string,
+  sprintId?: string,
+  developerId?: string
+) => {
   return useQuery({
-    queryKey: ["githubKpis", projectId],
-    queryFn: () => getGitHubKpis(projectId!),
+    queryKey: ["githubKpis", projectId, sprintId, developerId],
+    queryFn: () =>
+      getGitHubKpis({
+        projectId: projectId!,
+        sprintId: toDashboardNullableId(sprintId),
+        developerId: toDashboardNullableId(developerId),
+      }),
     enabled: !!projectId,
   });
 };

@@ -112,7 +112,7 @@
 
 .kpiGridGithub {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -254,30 +254,6 @@
   justify-content: center;
   color: var(--text-3);
   font-size: 0.82rem;
-}
-
-.filterUnavailableState {
-  height: 260px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 6px;
-  padding: 0 18px;
-  color: var(--text-3);
-  text-align: center;
-}
-
-.filterUnavailableText {
-  color: var(--text-2);
-  font-size: 0.82rem;
-  font-weight: 800;
-}
-
-.filterUnavailableHint {
-  max-width: 360px;
-  font-size: 0.78rem;
-  line-height: 1.35;
 }
 
 @media (max-width: 1280px) {
