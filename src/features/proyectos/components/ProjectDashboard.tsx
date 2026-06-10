@@ -99,7 +99,7 @@ const getDeveloperName = (
     (option) => option.id === dashboard.developerId
   )?.name;
 
-  return dashboard.developerName ?? optionName ?? `Developer ${index + 1}`;
+  return dashboard.developerName ?? optionName ?? `Desarrollador ${index + 1}`;
 };
 
 export const ProjectDashboard = ({ projectId }: Props) => {
@@ -325,7 +325,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
       {
         type: "bar",
         data: hbarSprintData,
-        itemStyle: { color: "#7c3aed", borderRadius: [0, 4, 4, 0] },
+        itemStyle: { color: "#2563eb", borderRadius: [0, 4, 4, 0] },
         label: { show: true, position: "right", formatter: "{c}" },
       },
     ],
@@ -372,7 +372,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         name: "Real (hrs)",
         type: "bar",
         data: sprintHistory.map((item) => item.totalRealHours),
-        itemStyle: { color: "#d97706" },
+        itemStyle: { color: "#16a34a" },
       },
     ],
   };
@@ -835,6 +835,8 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         </div>
       ) : dashboardData && summary ? (
         <>
+          <h3 className={styles.metricsSectionTitle}>Métricas generales</h3>
+
           <div className={styles.kpiGridPrimary}>
             <KpiCard
               label="Progreso General"
@@ -842,7 +844,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
               tone={getPercentKpiTone(summary.completionRate)}
             />
             <KpiCard
-              label="Sprint Completion"
+              label="Completitud del Sprint"
               value={formatPercentSmart(summary.completionRate)}
               tone={getPercentKpiTone(summary.completionRate)}
             />
@@ -852,24 +854,24 @@ export const ProjectDashboard = ({ projectId }: Props) => {
               tone={getPercentKpiTone(summary.onTimeRate)}
             />
             <KpiCard
-              label="Precisión Estimación"
+              label="Precisión de Estimación"
               value={formatSmartNumber(summary.estimationAccuracy, 2)}
               tone={getAccuracyKpiTone(summary.estimationAccuracy)}
-            />
-            <KpiCard
-              label={
-                selectedSprintId === ALL_DASHBOARD_FILTER
-                  ? "Tareas totales"
-                  : "Tareas en sprint"
-              }
-              value={formatSmartNumber(summary.totalTasks)}
-              tone="blue"
             />
           </div>
 
           <div className={styles.kpiGridSecondary}>
             <KpiCard
-              label="# Tasks Completadas"
+              label={
+                selectedSprintId === ALL_DASHBOARD_FILTER
+                  ? "Tareas Totales"
+                  : "Tareas en Sprint"
+              }
+              value={formatSmartNumber(summary.totalTasks)}
+              tone="blue"
+            />
+            <KpiCard
+              label="# Tareas Completadas"
               value={formatSmartNumber(summary.completedTasks)}
               tone="blue"
             />
@@ -879,12 +881,12 @@ export const ProjectDashboard = ({ projectId }: Props) => {
               tone="blue"
             />
             <KpiCard
-              label="Promedio Tasks / Dev"
+              label="Promedio Tareas / Desarrollador"
               value={formatSmartNumber(summary.avgTasksPerDeveloper, 1)}
               tone="blue"
             />
             <KpiCard
-              label="Promedio Horas / Dev"
+              label="Promedio Horas / Desarrollador"
               value={formatHours(summary.avgHoursPerDeveloper)}
               tone="blue"
             />
@@ -915,7 +917,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
           </div>
 
           <div className={styles.chartGridBottom}>
-            <ChartCard title="Tasks Terminadas por Desarrollador / Sprint">
+            <ChartCard title="Tareas Terminadas por Desarrollador / Sprint">
               {loadingDeveloperCharts ? (
                 <ChartLoading />
               ) : hasDeveloperChartData ? (
@@ -971,9 +973,18 @@ export const ProjectDashboard = ({ projectId }: Props) => {
           )}
 
           <div className={styles.githubSection}>
-            <h3 className={styles.githubSectionTitle}>GitHub Activity</h3>
+            <h3 className={styles.githubSectionTitle}>Actividad GitHub</h3>
 
             <div className={styles.kpiGridGithub}>
+              <KpiCard
+                label="Repos monitoreados"
+                value={
+                  loadingGitHubKpis
+                    ? "--"
+                    : formatSmartNumber(monitoredRepos)
+                }
+                tone="blue"
+              />
               <KpiCard
                 label="Commits GitHub"
                 value={
@@ -990,7 +1001,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
                     ? "--"
                     : formatSmartNumber(githubSummary.openedIssues)
                 }
-                tone="orange"
+                tone="blue"
               />
               <KpiCard
                 label="Issues cerrados"
@@ -999,7 +1010,10 @@ export const ProjectDashboard = ({ projectId }: Props) => {
                     ? "--"
                     : formatSmartNumber(githubSummary.closedIssues)
                 }
-                tone="green"
+                tone={getClosedIssuesKpiTone(
+                  githubSummary.openedIssues,
+                  githubSummary.closedIssues
+                )}
               />
               <KpiCard
                 label="Issues activos"
@@ -1008,7 +1022,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
                     ? "--"
                     : formatSmartNumber(githubSummary.activeIssues)
                 }
-                tone="blue"
+                tone={getActiveIssuesKpiTone(githubSummary.activeIssues)}
               />
               <KpiCard
                 label="Tasa de cierre"
@@ -1019,15 +1033,6 @@ export const ProjectDashboard = ({ projectId }: Props) => {
                 }
                 tone={getPercentKpiTone(githubIssueClosureRate)}
               />
-              <KpiCard
-                label="Repos monitoreados"
-                value={
-                  loadingGitHubKpis
-                    ? "--"
-                    : formatSmartNumber(monitoredRepos)
-                }
-                tone="blue"
-              />
             </div>
 
             {hasGitHubKpisError && (
@@ -1037,7 +1042,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
             )}
 
             <div className={styles.chartGridTwo}>
-              <ChartCard title="Actividad tecnica por integrante">
+              <ChartCard title="Actividad técnica por integrante">
                 {loadingGitHubKpis ? (
                   <ChartLoading />
                 ) : hasGitHubContributions ? (
@@ -1050,7 +1055,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
                 )}
               </ChartCard>
 
-              <ChartCard title="Distribucion porcentual de commits">
+              <ChartCard title="Distribución porcentual de commits">
                 {loadingGitHubKpis ? (
                   <ChartLoading />
                 ) : hasGitHubCommitShareData ? (
@@ -1119,6 +1124,21 @@ const getAccuracyKpiTone = (value: number | null): KpiTone => {
   if (value > 0.9) return "green";
   if (value >= 0.6) return "orange";
   return "red";
+};
+
+const getActiveIssuesKpiTone = (value: number | null | undefined): KpiTone => {
+  const activeIssues = Number(value ?? 0);
+  if (activeIssues < 10) return "green";
+  if (activeIssues < 30) return "orange";
+  return "red";
+};
+
+const getClosedIssuesKpiTone = (
+  openedIssues: number,
+  closedIssues: number
+): KpiTone => {
+  if (openedIssues <= 0) return "green";
+  return getPercentKpiTone((closedIssues / openedIssues) * 100);
 };
 
 const KpiCard = ({

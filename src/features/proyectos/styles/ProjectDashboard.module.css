@@ -98,14 +98,14 @@
 
 .kpiGridPrimary {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 12px;
 }
 
 .kpiGridSecondary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 24px;
 }
@@ -142,6 +142,7 @@
   margin-top: 16px;
 }
 
+.metricsSectionTitle,
 .githubSectionTitle {
   margin: 0 0 12px;
   color: var(--text-1);
@@ -262,7 +263,7 @@
   }
 
   .kpiGridSecondary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .kpiGridGithub {
