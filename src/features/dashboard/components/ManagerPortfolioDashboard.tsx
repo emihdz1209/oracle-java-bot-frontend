@@ -1,22 +1,11 @@
 /// src/features/dashboard/components/ManagerPortfolioDashboard.tsx
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import type { ReactNode } from "react";
-import {
-  CircularProgress,
-  Checkbox,
-  ListItemText,
-  MenuItem,
-  FormControl,
-  Select,
-  Button,
-} from "@mui/material";
-import type { SelectChangeEvent } from "@mui/material";
+import { CircularProgress } from "@mui/material";
 import ReactECharts from "echarts-for-react";
 
-import { useAuth } from "@/features/auth/hooks/useAuth";
 import {
-  useManagedProjects,
   useMultiProjectSprints,
   useMultiProjectSprintKpis,
   useMultiProjectProgress,
@@ -26,46 +15,58 @@ import type { ManagedProject } from "@/features/dashboard/types/dashboard";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 
-const PROJECT_COLORS = [
-  "#2563eb",
-  "#16a34a",
-  "#d97706",
-  "#7c3aed",
-  "#dc2626",
-  "#0891b2",
-  "#ea580c",
-  "#65a30d",
-  "#6366f1",
-  "#f43f5e",
-  "#14b8a6",
-  "#a855f7",
-];
+const KPI_COLORS = {
+  green: "#16a34a",
+  orange: "#d97706",
+  red: "#dc2626",
+};
+
+const shortName = (fullName: string): string => {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length < 2) return fullName;
+  return `${parts[0]} ${parts[1][0]}.`;
+};
+
+const getInitials = (fullName: string): string => {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+};
+
+const getPercentKpiColor = (value: number) => {
+  if (value >= 80) return KPI_COLORS.green;
+  if (value >= 50) return KPI_COLORS.orange;
+  return KPI_COLORS.red;
+};
+
+const getAccuracyKpiColor = (value: number) => {
+  if (value > 0.9) return KPI_COLORS.green;
+  if (value >= 0.6) return KPI_COLORS.orange;
+  return KPI_COLORS.red;
+};
+
+const getActiveTasksKpiColor = (value: number) => {
+  if (value < 10) return KPI_COLORS.green;
+  if (value < 30) return KPI_COLORS.orange;
+  return KPI_COLORS.red;
+};
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export const ManagerPortfolioDashboard = () => {
-  const { auth } = useAuth();
-  const userId = auth.user?.userId;
+interface ManagerPortfolioDashboardProps {
+  allProjects: ManagedProject[];
+  selectedIds: string[];
+  loadingProjects: boolean;
+}
 
-  const { data: allProjects = [], isLoading: loadingProjects } =
-    useManagedProjects(userId);
-
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-  // Auto-select all when projects first load
-  const initialized = useState(false);
-  if (!initialized[0] && allProjects.length > 0) {
-    setSelectedIds(allProjects.map((p) => p.projectId));
-    initialized[1](true);
-  }
-
-  const handleChange = (event: SelectChangeEvent<string[]>) => {
-    const value = event.target.value;
-    setSelectedIds(typeof value === "string" ? value.split(",") : value);
-  };
-
-  const selectAll = () => setSelectedIds(allProjects.map((p) => p.projectId));
-  const unselectAll = () => setSelectedIds([]);
+export const ManagerPortfolioDashboard = ({
+  allProjects,
+  selectedIds,
+  loadingProjects,
+}: ManagerPortfolioDashboardProps) => {
 
   // Build name map for convenience
   const nameMap = useMemo(() => {
@@ -125,7 +126,6 @@ export const ManagerPortfolioDashboard = () => {
         let pTotalTareas = 0;
         let pCompletadas = 0;
         let pATiempo = 0;
-        let pConRetraso = 0;
         let pEstimado = 0;
         let pReal = 0;
 
@@ -133,7 +133,6 @@ export const ManagerPortfolioDashboard = () => {
           pTotalTareas += k.totalTareas;
           pCompletadas += k.tareasCompletadas;
           pATiempo += k.aTiempo;
-          pConRetraso += k.conRetraso;
           pEstimado += k.totalEstimadoHrs;
           pReal += k.totalRealHrs;
         }
@@ -182,7 +181,7 @@ export const ManagerPortfolioDashboard = () => {
         axisPointer: { type: "shadow" as const },
       },
       legend: {
-        data: ["On-time Tasks", "Delayed Tasks"],
+        data: ["Tareas a tiempo", "Tareas con retraso"],
         top: 0,
         textStyle: { fontSize: 11 },
       },
@@ -201,14 +200,14 @@ export const ManagerPortfolioDashboard = () => {
       yAxis: { type: "value" as const },
       series: [
         {
-          name: "On-time Tasks",
+          name: "Tareas a tiempo",
           type: "bar" as const,
           stack: "delivery",
           data: onTimeData,
           itemStyle: { color: "#16a34a" },
         },
         {
-          name: "Delayed Tasks",
+          name: "Tareas con retraso",
           type: "bar" as const,
           stack: "delivery",
           data: delayedData,
@@ -241,7 +240,7 @@ export const ManagerPortfolioDashboard = () => {
         axisPointer: { type: "shadow" as const },
       },
       legend: {
-        data: ["Estimated Hours", "Real Hours"],
+        data: ["Horas estimadas", "Horas reales"],
         top: 0,
         textStyle: { fontSize: 11 },
       },
@@ -260,72 +259,57 @@ export const ManagerPortfolioDashboard = () => {
       yAxis: { type: "value" as const },
       series: [
         {
-          name: "Estimated Hours",
+          name: "Horas estimadas",
           type: "bar" as const,
           data: estimatedData,
           itemStyle: { color: "#2563eb" },
         },
         {
-          name: "Real Hours",
+          name: "Horas reales",
           type: "bar" as const,
           data: realData,
-          itemStyle: { color: "#d97706" },
+          itemStyle: { color: "#16a34a" },
         },
       ],
     };
   }, [selectedIds, kpisByProject, nameMap]);
 
-  // ── Chart 3: Resource Workload (Horizontal Bar — completed tasks per dev) ─
-  const workloadOption = useMemo(() => {
-    // Merge developers across selected projects, summing completed tasks
-    const devMap: Record<string, { nombre: string; completadas: number }> = {};
+  const workloadEntries = useMemo(() => {
+    const devMap: Record<
+      string,
+      { nombre: string; asignadas: number; completadas: number }
+    > = {};
 
     for (const pid of selectedIds) {
       const devs = devPerfByProject[pid] ?? [];
       for (const dev of devs) {
         if (!devMap[dev.userId]) {
-          devMap[dev.userId] = { nombre: dev.nombre, completadas: 0 };
+          devMap[dev.userId] = {
+            nombre: dev.nombre,
+            asignadas: 0,
+            completadas: 0,
+          };
         }
+        devMap[dev.userId].asignadas += dev.rendimientoGlobal.asignadas;
         devMap[dev.userId].completadas += dev.rendimientoGlobal.completadas;
       }
     }
 
-    const entries = Object.values(devMap).sort(
-      (a, b) => a.completadas - b.completadas,
-    );
-    const devNames = entries.map((e) => e.nombre);
-    const devValues = entries.map((e) => e.completadas);
+    return Object.values(devMap)
+      .sort((a, b) => b.completadas - a.completadas)
+      .map((entry) => {
+        const capacidad = Math.max(entry.asignadas, entry.completadas, 1);
+        const porcentaje = Math.round((entry.completadas / capacidad) * 100);
 
-    return {
-      tooltip: {
-        formatter: (p: { name: string; value: number }) =>
-          `${p.name}: ${p.value} tasks completed`,
-      },
-      grid: {
-        left: "0%",
-        right: "12%",
-        bottom: "0%",
-        top: "0%",
-        containLabel: true,
-      },
-      xAxis: { type: "value" as const, name: "Completed Tasks" },
-      yAxis: {
-        type: "category" as const,
-        data: devNames,
-        axisLabel: { width: 100, overflow: "truncate" as const },
-      },
-      series: [
-        {
-          type: "bar" as const,
-          data: devValues.map((v, i) => ({
-            value: v,
-            itemStyle: { color: PROJECT_COLORS[i % PROJECT_COLORS.length] },
-          })),
-          itemStyle: { borderRadius: [0, 4, 4, 0] },
-          label: { show: true, position: "right" as const, formatter: "{c}" },
-        },
-      ],
-    };
+        return {
+          nombre: entry.nombre,
+          nombreCorto: shortName(entry.nombre),
+          iniciales: getInitials(entry.nombre),
+          completadas: entry.completadas,
+          capacidad,
+          porcentaje,
+        };
+      });
   }, [selectedIds, devPerfByProject]);
 
   // ── Render ──────────────────────────────────────────────────────
@@ -343,65 +327,16 @@ export const ManagerPortfolioDashboard = () => {
       <p
         style={{ color: "var(--text-3)", fontSize: "0.875rem", marginTop: 16 }}
       >
-        No managed projects found for this account.
+        No se encontraron proyectos administrados para esta cuenta.
       </p>
     );
   }
 
   return (
     <div style={{ width: "100%" }}>
-      {/* Project multi-select + Select all / Unselect all */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          marginBottom: 20,
-          flexWrap: "wrap",
-        }}
-      >
-        <span className="section-label" style={{ margin: 0 }}>
-          Projects
-        </span>
-        <FormControl size="small" style={{ minWidth: 320, maxWidth: 520 }}>
-          <Select
-            multiple
-            value={selectedIds}
-            onChange={handleChange}
-            renderValue={(sel) =>
-              sel.length === allProjects.length
-                ? "All projects"
-                : sel.map((id) => nameMap[id] ?? id).join(", ")
-            }
-          >
-            {allProjects.map((p) => (
-              <MenuItem key={p.projectId} value={p.projectId}>
-                <Checkbox
-                  checked={selectedIds.includes(p.projectId)}
-                  size="small"
-                />
-                <ListItemText primary={p.nombre} />
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={
-            selectedIds.length === allProjects.length ? unselectAll : selectAll
-          }
-          style={{ textTransform: "none", fontSize: "0.75rem" }}
-        >
-          {selectedIds.length === allProjects.length
-            ? "Unselect all"
-            : "Select all"}
-        </Button>
-      </div>
-
       {selectedIds.length === 0 && (
         <p style={{ color: "var(--text-3)", fontSize: "0.875rem" }}>
-          Select at least one project to view the portfolio dashboard.
+          Selecciona al menos un proyecto para ver el panel de portafolio.
         </p>
       )}
 
@@ -425,29 +360,29 @@ export const ManagerPortfolioDashboard = () => {
                 }}
               >
                 <KpiCard
-                  label="Avg General Progress"
+                  label="Promedio Progreso General"
                   value={`${kpiAgg.avgProgress}%`}
-                  color="#2563eb"
+                  color={getPercentKpiColor(kpiAgg.avgProgress)}
                 />
                 <KpiCard
-                  label="Avg Sprint Completion"
+                  label="Promedio Completitud del Sprint"
                   value={`${kpiAgg.avgSprintCompletion}%`}
-                  color="#16a34a"
+                  color={getPercentKpiColor(kpiAgg.avgSprintCompletion)}
                 />
                 <KpiCard
-                  label="Avg On-Time Delivery"
+                  label="Promedio Entrega a Tiempo"
                   value={`${kpiAgg.avgOnTime}%`}
-                  color="#d97706"
+                  color={getPercentKpiColor(kpiAgg.avgOnTime)}
                 />
                 <KpiCard
-                  label="Avg Estimation Precision"
+                  label="Promedio Precisión de Estimación"
                   value={String(kpiAgg.avgEstimationPrecision)}
-                  color="#7c3aed"
+                  color={getAccuracyKpiColor(Number(kpiAgg.avgEstimationPrecision))}
                 />
                 <KpiCard
-                  label="Total Active Tasks"
+                  label="Tareas Activas Totales"
                   value={String(kpiAgg.totalActiveTasks)}
-                  color="#dc2626"
+                  color={getActiveTasksKpiColor(kpiAgg.totalActiveTasks)}
                 />
               </div>
 
@@ -460,13 +395,13 @@ export const ManagerPortfolioDashboard = () => {
                   marginBottom: 16,
                 }}
               >
-                <ChartCard title="Delivery Health">
+                <ChartCard title="Entrega a Tiempo">
                   <ReactECharts
                     option={deliveryHealthOption}
                     style={{ height: 220 }}
                   />
                 </ChartCard>
-                <ChartCard title="Estimation vs Real (hrs)">
+                <ChartCard title="Estimación vs Real (hrs)">
                   <ReactECharts
                     option={estimationOption}
                     style={{ height: 220 }}
@@ -474,32 +409,7 @@ export const ManagerPortfolioDashboard = () => {
                 </ChartCard>
               </div>
 
-              {/* Charts row 2: Resource Workload */}
-              <ChartCard title="Resource Workload / Productivity">
-                {Object.keys(devPerfByProject).length > 0 ? (
-                  <ReactECharts
-                    option={workloadOption}
-                    style={{
-                      height: Math.max(
-                        180,
-                        Object.values(
-                          selectedIds.reduce<Record<string, boolean>>(
-                            (acc, pid) => {
-                              (devPerfByProject[pid] ?? []).forEach(
-                                (d) => (acc[d.userId] = true),
-                              );
-                              return acc;
-                            },
-                            {},
-                          ),
-                        ).length * 36,
-                      ),
-                    }}
-                  />
-                ) : (
-                  <EmptyState />
-                )}
-              </ChartCard>
+              <TeamWorkloadCard entries={workloadEntries} />
             </>
           )}
         </>
@@ -572,6 +482,128 @@ const ChartCard = ({
   </div>
 );
 
+interface TeamWorkloadEntry {
+  nombre: string;
+  nombreCorto: string;
+  iniciales: string;
+  completadas: number;
+  capacidad: number;
+  porcentaje: number;
+}
+
+const TeamWorkloadCard = ({ entries }: { entries: TeamWorkloadEntry[] }) => (
+  <ChartCard title="Carga del equipo">
+    {entries.length > 0 ? (
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        {entries.map((entry) => {
+          const completedWidth = Math.min(entry.porcentaje, 100);
+          const pendingWidth = Math.max(0, 100 - completedWidth);
+
+          return (
+            <div
+              key={entry.nombre}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "52px minmax(0, 1fr) auto",
+                gap: 14,
+                alignItems: "center",
+              }}
+            >
+              <div
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: "50%",
+                  background: "#f4f4f5",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  color: "var(--text-2)",
+                }}
+              >
+                {entry.iniciales}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  title={entry.nombre}
+                  style={{
+                    fontWeight: 700,
+                    marginBottom: 8,
+                    color: "var(--text-1)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {entry.nombreCorto}
+                </div>
+                <div
+                  style={{
+                    height: 10,
+                    borderRadius: 999,
+                    background: "#f4f4f5",
+                    overflow: "hidden",
+                    display: "flex",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${completedWidth}%`,
+                      height: "100%",
+                      background: "#2563eb",
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: `${pendingWidth}%`,
+                      height: "100%",
+                      background: "#dbeafe",
+                    }}
+                  />
+                </div>
+              </div>
+              <div
+                style={{
+                  fontWeight: 700,
+                  color: getActiveTasksKpiColor(
+                    entry.capacidad - entry.completadas,
+                  ),
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {entry.completadas} / {entry.capacidad} ({entry.porcentaje}%)
+              </div>
+            </div>
+          );
+        })}
+        <div
+          style={{
+            display: "flex",
+            gap: 18,
+            color: "var(--text-2)",
+            fontSize: "0.82rem",
+            borderTop: "1px solid var(--border)",
+            paddingTop: 12,
+          }}
+        >
+          <span>
+            <span style={{ color: "#2563eb" }}>●</span> Completadas
+          </span>
+          <span>
+            <span style={{ color: "#dbeafe" }}>●</span> Pendientes
+          </span>
+          <span>
+            <span style={{ color: "#f4f4f5" }}>●</span> Capacidad
+          </span>
+        </div>
+      </div>
+    ) : (
+      <EmptyState />
+    )}
+  </ChartCard>
+);
+
 const EmptyState = () => (
   <div
     style={{
@@ -583,6 +615,6 @@ const EmptyState = () => (
       fontSize: "0.82rem",
     }}
   >
-    No data available
+    Sin datos disponibles
   </div>
 );
