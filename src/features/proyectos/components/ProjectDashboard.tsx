@@ -336,7 +336,7 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     legend: { data: ["A tiempo", "Con retraso"], top: 0, textStyle: { fontSize: 11 } },
     grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
     xAxis: { type: "category", data: sprintNames },
-    yAxis: { type: "value" },
+    yAxis: { type: "value", name: "Tareas", nameTextStyle: { fontSize: 11 } },
     series: [
       {
         name: "A tiempo",
@@ -344,6 +344,12 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         stack: "total",
         data: sprintHistory.map((item) => item.onTimeTasks),
         itemStyle: { color: "#16a34a" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
+        },
       },
       {
         name: "Con retraso",
@@ -351,6 +357,12 @@ export const ProjectDashboard = ({ projectId }: Props) => {
         stack: "total",
         data: sprintHistory.map((item) => item.delayedTasks),
         itemStyle: { color: "#dc2626" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}` : ""),
+        },
       },
     ],
   };
@@ -360,19 +372,31 @@ export const ProjectDashboard = ({ projectId }: Props) => {
     legend: { data: ["Estimado (hrs)", "Real (hrs)"], top: 0, textStyle: { fontSize: 11 } },
     grid: { left: "3%", right: "4%", bottom: "8%", top: "56px", containLabel: true },
     xAxis: { type: "category", data: sprintNames },
-    yAxis: { type: "value" },
+    yAxis: { type: "value", name: "hrs", nameTextStyle: { fontSize: 11 } },
     series: [
       {
         name: "Estimado (hrs)",
         type: "bar",
         data: sprintHistory.map((item) => item.totalEstimatedHours),
         itemStyle: { color: "#2563eb" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}h` : ""),
+        },
       },
       {
         name: "Real (hrs)",
         type: "bar",
         data: sprintHistory.map((item) => item.totalRealHours),
         itemStyle: { color: "#16a34a" },
+        label: {
+          show: true,
+          position: "top",
+          fontSize: 10,
+          formatter: (p: { value: number }) => (p.value > 0 ? `${p.value}h` : ""),
+        },
       },
     ],
   };

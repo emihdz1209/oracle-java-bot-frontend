@@ -189,7 +189,7 @@ export const ManagerPortfolioDashboard = ({
         left: "3%",
         right: "4%",
         bottom: "8%",
-        top: "36px",
+        top: "56px",
         containLabel: true,
       },
       xAxis: {
@@ -197,7 +197,11 @@ export const ManagerPortfolioDashboard = ({
         data: projectNames,
         axisLabel: { rotate: projectNames.length > 4 ? 25 : 0, fontSize: 11 },
       },
-      yAxis: { type: "value" as const },
+      yAxis: {
+        type: "value" as const,
+        name: "Tareas",
+        nameTextStyle: { fontSize: 11 },
+      },
       series: [
         {
           name: "Tareas a tiempo",
@@ -205,6 +209,13 @@ export const ManagerPortfolioDashboard = ({
           stack: "delivery",
           data: onTimeData,
           itemStyle: { color: "#16a34a" },
+          label: {
+            show: true,
+            position: "top" as const,
+            fontSize: 10,
+            formatter: (p: { value: number }) =>
+              p.value > 0 ? `${p.value}` : "",
+          },
         },
         {
           name: "Tareas con retraso",
@@ -212,6 +223,13 @@ export const ManagerPortfolioDashboard = ({
           stack: "delivery",
           data: delayedData,
           itemStyle: { color: "#dc2626" },
+          label: {
+            show: true,
+            position: "top" as const,
+            fontSize: 10,
+            formatter: (p: { value: number }) =>
+              p.value > 0 ? `${p.value}` : "",
+          },
         },
       ],
     };
@@ -248,7 +266,7 @@ export const ManagerPortfolioDashboard = ({
         left: "3%",
         right: "4%",
         bottom: "8%",
-        top: "36px",
+        top: "56px",
         containLabel: true,
       },
       xAxis: {
@@ -256,19 +274,37 @@ export const ManagerPortfolioDashboard = ({
         data: projectNames,
         axisLabel: { rotate: projectNames.length > 4 ? 25 : 0, fontSize: 11 },
       },
-      yAxis: { type: "value" as const },
+      yAxis: {
+        type: "value" as const,
+        name: "hrs",
+        nameTextStyle: { fontSize: 11 },
+      },
       series: [
         {
           name: "Horas estimadas",
           type: "bar" as const,
           data: estimatedData,
           itemStyle: { color: "#2563eb" },
+          label: {
+            show: true,
+            position: "top" as const,
+            fontSize: 10,
+            formatter: (p: { value: number }) =>
+              p.value > 0 ? `${p.value}h` : "",
+          },
         },
         {
           name: "Horas reales",
           type: "bar" as const,
           data: realData,
           itemStyle: { color: "#16a34a" },
+          label: {
+            show: true,
+            position: "top" as const,
+            fontSize: 10,
+            formatter: (p: { value: number }) =>
+              p.value > 0 ? `${p.value}h` : "",
+          },
         },
       ],
     };
