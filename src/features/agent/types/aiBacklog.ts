@@ -10,8 +10,21 @@ export interface AiTaskSuggestion {
   createdAt: string;
 }
 
+export interface ProjectDocument {
+  documentId: string;
+  projectId: string;
+  documentType: string;
+  fileName: string;
+  fileUrl: string;
+  storagePath: string;
+  contentType: string;
+  fileSizeBytes: number;
+  createdAt: string;
+}
+
 export interface GenerateAiBacklogRequest {
   maxHours: number;
+  documentIds: string[];
 }
 
 export interface GenerateAiBacklogResponse {
@@ -44,12 +57,6 @@ export interface ApproveAiSuggestionResponse {
     tiempoEstimado: number;
     tiempoReal: number;
   };
-}
-
-export interface ClearAiSuggestionsResponse {
-  message: string;
-  projectId: string;
-  deletedSuggestions: number;
 }
 
 export interface ClearAiSuggestionsResponse {

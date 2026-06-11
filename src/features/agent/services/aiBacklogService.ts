@@ -7,6 +7,7 @@ import type {
   ClearAiSuggestionsResponse,
   GenerateAiBacklogRequest,
   GenerateAiBacklogResponse,
+  ProjectDocument,
 } from "@/features/agent/types/aiBacklog";
 
 const ensureHyphenatedUuid = (id: string) => {
@@ -25,6 +26,16 @@ const ensureHyphenatedUuid = (id: string) => {
     "-" +
     clean.slice(20)
   ).toLowerCase();
+};
+
+export const getProjectDocuments = async (
+  projectId: string
+): Promise<ProjectDocument[]> => {
+  const pid = ensureHyphenatedUuid(projectId);
+  const response = await apiClient.get<ProjectDocument[]>(
+    `/api/projects/${pid}/documents`
+  );
+  return response.data;
 };
 
 export const generateAiBacklog = async (

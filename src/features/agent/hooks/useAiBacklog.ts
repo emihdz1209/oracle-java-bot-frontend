@@ -4,11 +4,13 @@ import type {
   AiSuggestionStatus,
   AiTaskSuggestion,
   ApproveAiSuggestionRequest,
+  ProjectDocument,
 } from "@/features/agent/types/aiBacklog";
 import {
   approveAiSuggestion,
   generateAiBacklog,
   getAiSuggestions,
+  getProjectDocuments,
   rejectAiSuggestion,
 } from "@/features/agent/services/aiBacklogService";
 
@@ -16,6 +18,25 @@ type AiSuggestionsQueryOptions = Omit<
   UseQueryOptions<AiTaskSuggestion[]>,
   "queryKey" | "queryFn"
 >;
+
+type ProjectDocumentsQueryOptions = Omit<
+  UseQueryOptions<ProjectDocument[]>,
+  "queryKey" | "queryFn"
+>;
+
+export const useProjectDocuments = (
+  projectId?: string,
+  options?: ProjectDocumentsQueryOptions
+) => {
+  const { enabled = true, ...rest } = options ?? {};
+
+  return useQuery({
+    queryKey: ["projectDocuments", projectId],
+    queryFn: () => getProjectDocuments(projectId!),
+    enabled: !!projectId && enabled,
+    ...rest,
+  });
+};
 
 export const useAiSuggestions = (
   projectId?: string,
@@ -34,8 +55,19 @@ export const useAiSuggestions = (
 
 export const useGenerateAiBacklog = () => {
   return useMutation({
-    mutationFn: ({ projectId, maxHours }: { projectId: string; maxHours: number }) =>
-      generateAiBacklog(projectId, { maxHours }),
+    mutationFn: ({
+      projectId,
+      maxHours,
+      documentIds,
+    }: {
+      projectId: string;
+      maxHours: number;
+      documentIds: string[];
+    }) =>
+      generateAiBacklog(projectId, {
+        maxHours,
+        documentIds,
+      }),
   });
 };
 
@@ -43,8 +75,13 @@ export const useApproveAiSuggestion = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ aiTaskId, payload }: { aiTaskId: string; payload: ApproveAiSuggestionRequest }) =>
-      approveAiSuggestion(aiTaskId, payload),
+    mutationFn: ({
+      aiTaskId,
+      payload,
+    }: {
+      aiTaskId: string;
+      payload: ApproveAiSuggestionRequest;
+    }) => approveAiSuggestion(aiTaskId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["aiSuggestions"] });
     },

@@ -31,12 +31,14 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // limpiar sesión
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
-      // redirigir a login
-      window.location.href = "/login";
+      const isAlreadyOnLogin = window.location.pathname === "/login";
+
+      if (!isAlreadyOnLogin) {
+        window.location.href = "/login";
+      }
     }
 
     return Promise.reject(error);
