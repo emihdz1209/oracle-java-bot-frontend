@@ -47,7 +47,6 @@ export const TareasModal = ({ taskId, projectId, onClose }: TareasModalProps) =>
     data: tareaDetalle,
     isLoading: detailLoading,
     isError: detailError,
-    refetch: refetchTaskDetail,
   } = useTareaById(taskId ?? undefined);
   const {
     data: taskAssignments,
@@ -140,13 +139,15 @@ export const TareasModal = ({ taskId, projectId, onClose }: TareasModalProps) =>
       tiempoEstimado: tareaDetalle.tiempoEstimado === null ? "" : String(tareaDetalle.tiempoEstimado),
       tiempoReal: tareaDetalle.tiempoReal === null ? "" : String(tareaDetalle.tiempoReal),
     });
+  }, [tareaDetalle]);
 
+  useEffect(() => {
     setSaveFeedback(null);
     setSaveError(null);
     setAssignError(null);
     setSelectedUserId("");
     setRemovingUserId(null);
-  }, [tareaDetalle]);
+  }, [taskId]);
 
   useEffect(() => {
     if (!selectedUserId) {
