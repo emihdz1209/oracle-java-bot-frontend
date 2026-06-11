@@ -145,11 +145,6 @@ export const CreateTareaForm = ({
       sprintId: form.sprintId,
       tiempoEstimado: parsedTiempoEstimado,
     });
-    setForm({
-      ...EMPTY,
-      projectId: projects.length === 1 ? projects[0].projectId : "",
-      fechaLimite: getDefaultFechaLimite(),
-    });
   };
 
   return (

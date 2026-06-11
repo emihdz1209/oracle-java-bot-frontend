@@ -7,6 +7,8 @@ interface Props {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  hideActions?: boolean;
+  hideCloseButton?: boolean;
 }
 
 export const useAppModal = (initialOpen = false) => {
@@ -28,7 +30,14 @@ export const useAppModal = (initialOpen = false) => {
   };
 };
 
-export const AppModal = ({ open, onClose, title, children }: Props) => {
+export const AppModal = ({
+  open,
+  onClose,
+  title,
+  children,
+  hideActions = false,
+  hideCloseButton = false,
+}: Props) => {
   return (
     <Dialog
       open={open}
@@ -50,9 +59,11 @@ export const AppModal = ({ open, onClose, title, children }: Props) => {
     >
       <DialogTitle className="app-modal-title">
         <span>{title}</span>
-        <button onClick={onClose} className="app-modal-close-btn" aria-label="Cerrar">
-          <CloseIcon />
-        </button>
+        {!hideCloseButton && (
+          <button onClick={onClose} className="app-modal-close-btn" aria-label="Cerrar">
+            <CloseIcon />
+          </button>
+        )}
       </DialogTitle>
 
       <DialogContent className="app-modal-content">
@@ -61,11 +72,13 @@ export const AppModal = ({ open, onClose, title, children }: Props) => {
         </div>
       </DialogContent>
 
-      <DialogActions className="app-modal-actions">
-        <Button onClick={onClose} className="app-modal-cancel-btn">
-          Cancelar
-        </Button>
-      </DialogActions>
+      {!hideActions && (
+        <DialogActions className="app-modal-actions">
+          <Button onClick={onClose} className="app-modal-cancel-btn">
+            Cancelar
+          </Button>
+        </DialogActions>
+      )}
     </Dialog>
   );
 };

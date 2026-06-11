@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CircularProgress,
   Button,
@@ -25,7 +25,6 @@ import type {
   TareaResponsable,
 } from "@/features/tareas/types/tarea";
 import { CreateTareaForm } from "@/features/tareas/components/CreateTareaForm";
-import { TareaCreatedModal } from "@/features/tareas/components/TareaCreatedModal";
 import { TareaList } from "@/features/tareas/components/TareaList";
 import { TareasModal } from "@/features/tareas/components/TareasModal";
 import { NavBar } from "@/shared/pages/NavBar";
@@ -95,8 +94,16 @@ export const TareasPage = () => {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [excludedDeveloperKeys, setExcludedDeveloperKeys] = useState<string[]>([]);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState(false);
+  const createSuccessCloseTimerRef = useRef<number | null>(null);
   const createModal = useAppModal();
-  const createdModal = useAppModal();
+
+  const clearCreateSuccessCloseTimer = () => {
+    if (createSuccessCloseTimerRef.current !== null) {
+      window.clearTimeout(createSuccessCloseTimerRef.current);
+      createSuccessCloseTimerRef.current = null;
+    }
+  };
 
   useEffect(() => {
     setInitialized(false);
@@ -133,6 +140,14 @@ export const TareasPage = () => {
 
     persistProjectSelection(storageKey, selectedIds);
   }, [initialized, selectedIds, storageKey]);
+
+  useEffect(() => {
+    return () => {
+      if (createSuccessCloseTimerRef.current !== null) {
+        window.clearTimeout(createSuccessCloseTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
@@ -246,12 +261,18 @@ export const TareasPage = () => {
   const deleteMutation = useDeleteTarea(undefined);
 
   const handleOpenCreateModal = () => {
+    clearCreateSuccessCloseTimer();
     setCreateError(null);
+    setCreateSuccess(false);
     createModal.openModal();
   };
 
   const handleCloseCreateModal = () => {
+    clearCreateSuccessCloseTimer();
     setCreateError(null);
+    if (!createSuccess) {
+      setCreateSuccess(false);
+    }
     createModal.closeModal();
   };
 
@@ -280,10 +301,15 @@ export const TareasPage = () => {
       {
         onSuccess: () => {
           setCreateError(null);
-          createModal.closeModal();
-          createdModal.openModal();
+          setCreateSuccess(true);
+          clearCreateSuccessCloseTimer();
+          createSuccessCloseTimerRef.current = window.setTimeout(() => {
+            createModal.closeModal();
+            createSuccessCloseTimerRef.current = null;
+          }, 1000);
         },
         onError: () => {
+          setCreateSuccess(false);
           setCreateError("No se pudo crear la tarea. Verifica los datos e intenta nuevamente.");
         },
       }
@@ -512,17 +538,28 @@ export const TareasPage = () => {
       </div>
 
       {/* Create modal */}
-      <AppModal open={createModal.isOpen} onClose={handleCloseCreateModal} title="Nueva tarea">
-        <CreateTareaForm
-          onSubmit={handleCreate}
-          isPending={createMutation.isPending}
-          projects={selectedProjects}
-          prioridades={PRIORIDADES}
-          submitError={createError}
-          onClearSubmitError={() => setCreateError(null)}
-        />
+      <AppModal
+        open={createModal.isOpen}
+        onClose={handleCloseCreateModal}
+        title="Nueva tarea"
+        hideActions={createSuccess}
+        hideCloseButton={createSuccess}
+      >
+        {createSuccess ? (
+          <div className="create-tarea-success" role="status" aria-live="polite">
+            La tarea ha sido creada correctamente
+          </div>
+        ) : (
+          <CreateTareaForm
+            onSubmit={handleCreate}
+            isPending={createMutation.isPending}
+            projects={selectedProjects}
+            prioridades={PRIORIDADES}
+            submitError={createError}
+            onClearSubmitError={() => setCreateError(null)}
+          />
+        )}
       </AppModal>
-      <TareaCreatedModal open={createdModal.isOpen} onClose={createdModal.closeModal} />
     </div>
   );
 };
