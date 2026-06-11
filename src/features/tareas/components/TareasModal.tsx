@@ -181,44 +181,89 @@ export const TareasModal = ({ taskId, projectId, onClose }: TareasModalProps) =>
 
     const parsedPrioridadId = Number(form.prioridadId);
     const parsedEstadoId = Number(form.estadoId);
-    const parsedTiempoEstimado = form.tiempoEstimado.trim() === "" ? null : Number(form.tiempoEstimado);
-    const parsedTiempoReal = form.tiempoReal.trim() === "" ? null : Number(form.tiempoReal);
+    const parsedTiempoEstimado =
+      form.tiempoEstimado.trim() === "" ? null : Number(form.tiempoEstimado);
+    const parsedTiempoReal =
+      form.tiempoReal.trim() === "" ? null : Number(form.tiempoReal);
 
     if (!Number.isFinite(parsedPrioridadId) || !Number.isFinite(parsedEstadoId)) {
       setSaveError("Prioridad o estado inválidos.");
       return;
     }
 
-    if ((parsedTiempoEstimado !== null && !Number.isFinite(parsedTiempoEstimado)) ||
-      (parsedTiempoReal !== null && !Number.isFinite(parsedTiempoReal))) {
+    if (
+      (parsedTiempoEstimado !== null && !Number.isFinite(parsedTiempoEstimado)) ||
+      (parsedTiempoReal !== null && !Number.isFinite(parsedTiempoReal))
+    ) {
       setSaveError("Tiempo estimado y tiempo real deben ser valores numéricos.");
       return;
     }
 
-    if ((parsedTiempoEstimado !== null && parsedTiempoEstimado < 0) ||
-      (parsedTiempoReal !== null && parsedTiempoReal < 0)) {
+    if (
+      (parsedTiempoEstimado !== null && parsedTiempoEstimado < 0) ||
+      (parsedTiempoReal !== null && parsedTiempoReal < 0)
+    ) {
       setSaveError("Tiempo estimado y tiempo real no pueden ser negativos.");
       return;
     }
 
-    const payload: UpdateTareaRequest = {
-      titulo: form.titulo.trim(),
-      descripcion: form.descripcion.trim(),
-      fechaLimite: toApiDateTime(form.fechaLimite),
-      prioridadId: parsedPrioridadId,
-      sprintId: form.sprintId || undefined,
-      tiempoEstimado: parsedTiempoEstimado,
-      tiempoReal: parsedTiempoReal,
-    };
+    const payload: UpdateTareaRequest = {};
+
+    const nextTitulo = form.titulo.trim();
+    const nextDescripcion = form.descripcion.trim();
+    const nextFechaLimite = toApiDateTime(form.fechaLimite);
+    const nextSprintId = form.sprintId || "";
+
+    const currentSprintId = tareaDetalle.sprintId || "";
+    const currentDescripcion = tareaDetalle.descripcion || "";
+    const currentTiempoEstimado = tareaDetalle.tiempoEstimado ?? null;
+    const currentTiempoReal = tareaDetalle.tiempoReal ?? null;
+
+    if (nextTitulo !== tareaDetalle.titulo) {
+      payload.titulo = nextTitulo;
+    }
+
+    if (nextDescripcion !== currentDescripcion) {
+      payload.descripcion = nextDescripcion;
+    }
+
+    if (nextFechaLimite !== tareaDetalle.fechaLimite) {
+      payload.fechaLimite = nextFechaLimite;
+    }
+
+    if (parsedPrioridadId !== tareaDetalle.prioridadId) {
+      payload.prioridadId = parsedPrioridadId;
+    }
+
+    if (nextSprintId !== currentSprintId) {
+      payload.sprintId = nextSprintId;
+    }
+
+    if (parsedTiempoEstimado !== currentTiempoEstimado) {
+      payload.tiempoEstimado = parsedTiempoEstimado;
+    }
+
+    if (parsedTiempoReal !== currentTiempoReal) {
+      payload.tiempoReal = parsedTiempoReal;
+    }
 
     try {
-      await updateTareaMutation.mutateAsync({ taskId, data: payload });
+      const hasTaskChanges = Object.keys(payload).length > 0;
+      const hasStatusChange = parsedEstadoId !== tareaDetalle.estadoId;
 
-      if (parsedEstadoId !== tareaDetalle.estadoId) {
+      if (!hasTaskChanges && !hasStatusChange) {
+        setSaveFeedback("No hay cambios por guardar.");
+        return;
+      }
+
+      if (hasTaskChanges) {
+        await updateTareaMutation.mutateAsync({ taskId, data: payload });
+      }
+
+      if (hasStatusChange) {
         await updateStatusMutation.mutateAsync({ taskId, estadoId: parsedEstadoId });
       }
 
-      await Promise.all([refetchTaskDetail(), refetchTaskUsers()]);
       setSaveFeedback("Tarea actualizada correctamente.");
     } catch {
       setSaveError("No se pudo actualizar la tarea. Intenta nuevamente.");

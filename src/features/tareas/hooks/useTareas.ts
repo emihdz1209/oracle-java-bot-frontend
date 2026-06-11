@@ -17,6 +17,7 @@ export const useTareas = (projectId?: string) => {
     queryKey: ["tareas", projectId],
     queryFn: () => getTareasByProyecto(projectId!),
     enabled: !!projectId,
+    staleTime: 30_000,
   });
 };
 
@@ -26,10 +27,12 @@ export const useMultiProjectTareas = (projectIds: string[]) => {
       queryKey: ["tareas", pid],
       queryFn: () => getTareasByProyecto(pid),
       enabled: !!pid,
+      staleTime: 30_000,
     })),
   });
 
   const data: Tarea[] = [];
+
   queries.forEach((q) => {
     if (q.data) data.push(...q.data);
   });
@@ -44,6 +47,7 @@ export const useTareaById = (taskId?: string) => {
     queryKey: ["tarea", taskId],
     queryFn: () => getTareaById(taskId!),
     enabled: !!taskId,
+    staleTime: 30_000,
   });
 };
 
@@ -52,6 +56,7 @@ export const useTaskUsers = (taskId?: string) => {
     queryKey: ["taskUsers", taskId],
     queryFn: () => getTaskUsers(taskId!),
     enabled: !!taskId,
+    staleTime: 30_000,
   });
 };
 
@@ -61,8 +66,12 @@ export const useCreateTarea = () => {
   return useMutation({
     mutationFn: ({ projectId, data }: { projectId: string; data: CreateTareaRequest }) =>
       createTarea(projectId, data),
-    onSuccess: (_, { projectId }) => {
-      queryClient.invalidateQueries({ queryKey: ["tareas", projectId] });
+
+    onSuccess: (createdTask, { projectId }) => {
+      queryClient.setQueryData<Tarea[]>(["tareas", projectId], (current) => {
+        if (!current) return [createdTask];
+        return [createdTask, ...current];
+      });
     },
   });
 };
@@ -73,12 +82,26 @@ export const useUpdateTarea = (projectId?: string) => {
   return useMutation({
     mutationFn: ({ taskId, data }: { taskId: string; data: UpdateTareaRequest }) =>
       updateTarea(taskId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tareas"] });
 
-      if (projectId) {
-        queryClient.invalidateQueries({ queryKey: ["tareas", projectId] });
+    onSuccess: (updatedTask, { taskId }) => {
+      const targetProjectId = projectId || updatedTask.projectId;
+
+      if (targetProjectId) {
+        queryClient.setQueryData<Tarea[]>(["tareas", targetProjectId], (current) => {
+          if (!current) return current;
+
+          return current.map((task) =>
+            task.taskId === taskId
+              ? { ...task, ...updatedTask }
+              : task
+          );
+        });
       }
+
+      queryClient.setQueryData<Tarea>(["tarea", taskId], (current) => {
+        if (!current) return updatedTask;
+        return { ...current, ...updatedTask };
+      });
     },
   });
 };
@@ -89,41 +112,41 @@ export const useUpdateTareaStatus = (projectId?: string) => {
   return useMutation({
     mutationFn: ({ taskId, estadoId }: { taskId: string; estadoId: number }) =>
       updateTareaStatus(taskId, estadoId),
+
     onSuccess: (_, { taskId, estadoId }) => {
       if (projectId) {
         queryClient.setQueryData<Tarea[]>(["tareas", projectId], (current) => {
-          if (!current) {
-            return current;
-          }
+          if (!current) return current;
 
           return current.map((task) =>
             task.taskId === taskId
-              ? {
-                  ...task,
-                  estadoId,
-                }
+              ? { ...task, estadoId }
               : task
           );
         });
+      } else {
+        queryClient.setQueriesData<Tarea[]>(
+          { queryKey: ["tareas"] },
+          (current) => {
+            if (!current) return current;
+
+            return current.map((task) =>
+              task.taskId === taskId
+                ? { ...task, estadoId }
+                : task
+            );
+          }
+        );
       }
 
       queryClient.setQueryData<Tarea>(["tarea", taskId], (current) => {
-        if (!current) {
-          return current;
-        }
+        if (!current) return current;
 
         return {
           ...current,
           estadoId,
         };
       });
-
-      queryClient.invalidateQueries({ queryKey: ["tareas"] });
-      queryClient.invalidateQueries({ queryKey: ["tarea", taskId] });
-
-      if (projectId) {
-        queryClient.invalidateQueries({ queryKey: ["tareas", projectId] });
-      }
     },
   });
 };
@@ -133,12 +156,25 @@ export const useDeleteTarea = (projectId?: string) => {
 
   return useMutation({
     mutationFn: (taskId: string) => deleteTarea(taskId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tareas"] });
 
+    onSuccess: (_, taskId) => {
       if (projectId) {
-        queryClient.invalidateQueries({ queryKey: ["tareas", projectId] });
+        queryClient.setQueryData<Tarea[]>(["tareas", projectId], (current) => {
+          if (!current) return current;
+          return current.filter((task) => task.taskId !== taskId);
+        });
+      } else {
+        queryClient.setQueriesData<Tarea[]>(
+          { queryKey: ["tareas"] },
+          (current) => {
+            if (!current) return current;
+            return current.filter((task) => task.taskId !== taskId);
+          }
+        );
       }
+
+      queryClient.removeQueries({ queryKey: ["tarea", taskId] });
+      queryClient.removeQueries({ queryKey: ["taskUsers", taskId] });
     },
   });
 };
@@ -149,13 +185,12 @@ export const useAssignTaskUser = (projectId?: string) => {
   return useMutation({
     mutationFn: ({ taskId, userId }: { taskId: string; userId: string }) =>
       assignUserToTask(taskId, userId),
+
     onSuccess: (_, { taskId }) => {
       queryClient.invalidateQueries({ queryKey: ["taskUsers", taskId] });
       queryClient.invalidateQueries({ queryKey: ["tarea", taskId] });
 
-      if (projectId) {
-        queryClient.invalidateQueries({ queryKey: ["tareas", projectId] });
-      }
+      // Ya no invalidamos ["tareas", projectId] porque la lista ligera no depende de responsables.
     },
   });
 };
@@ -166,13 +201,12 @@ export const useRemoveTaskUser = (projectId?: string) => {
   return useMutation({
     mutationFn: ({ taskId, userId }: { taskId: string; userId: string }) =>
       removeUserFromTask(taskId, userId),
+
     onSuccess: (_, { taskId }) => {
       queryClient.invalidateQueries({ queryKey: ["taskUsers", taskId] });
       queryClient.invalidateQueries({ queryKey: ["tarea", taskId] });
 
-      if (projectId) {
-        queryClient.invalidateQueries({ queryKey: ["tareas", projectId] });
-      }
+      // Ya no invalidamos ["tareas", projectId] porque la lista ligera no depende de responsables.
     },
   });
 };

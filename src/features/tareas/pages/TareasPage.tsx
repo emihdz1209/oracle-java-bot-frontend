@@ -112,7 +112,7 @@ export const TareasPage = () => {
     const storedSelection = readStoredProjectSelection(storageKey);
 
     if (storedSelection === null) {
-      setSelectedIds(allProjects.map((project) => project.projectId));
+      setSelectedIds(allProjects.length > 0 ? [allProjects[0].projectId] : []);
       setInitialized(true);
       return;
     }

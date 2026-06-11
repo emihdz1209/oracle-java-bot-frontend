@@ -36,10 +36,10 @@ export interface CreateTareaRequest {
 }
 
 export interface UpdateTareaRequest {
-  titulo: string;
-  descripcion: string;
-  fechaLimite: string;
-  prioridadId: number;
+  titulo?: string;
+  descripcion?: string;
+  fechaLimite?: string;
+  prioridadId?: number;
   sprintId?: string;
   tiempoEstimado?: number | null;
   tiempoReal?: number | null;
