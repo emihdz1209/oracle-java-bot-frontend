@@ -56,14 +56,18 @@ export interface ProjectDashboardKpis {
 }
 
 export interface GitHubContribution {
+  userId: string;
   name: string;
+  email: string;
   githubUsername: string | null;
   totalCommits: number;
   openedIssues: number;
+  activeIssues: number;
   closedIssues: number;
 }
 
 export interface GitHubSprintActivity {
+  sprintId: string;
   sprintName: string;
   totalCommits: number;
   openedIssues: number;
@@ -71,10 +75,12 @@ export interface GitHubSprintActivity {
 }
 
 export interface GitHubRepositoryActivity {
+  repositoryId: string;
   owner: string;
   repoName: string;
   totalCommits: number;
   openedIssues: number;
+  activeIssues: number;
   closedIssues: number;
 }
 
@@ -104,6 +110,12 @@ interface GitHubKpisData {
 
 interface ProjectDashboardOptionsVariables {
   projectId: string;
+}
+
+interface GitHubKpisVariables {
+  projectId: string;
+  sprintId: string | null;
+  developerId: string | null;
 }
 
 interface ProjectDashboardKpisVariables {
@@ -181,13 +193,15 @@ export const getProjectDashboardKpis = async (
   return data.projectDashboardKpis;
 };
 
-export const getGitHubKpis = async (projectId: string): Promise<GitHubKpis> => {
+export const getGitHubKpis = async (
+  variables: GitHubKpisVariables
+): Promise<GitHubKpis> => {
   const data = await graphqlRequest<
     GitHubKpisData,
-    ProjectDashboardOptionsVariables
+    GitHubKpisVariables
   >(
     GITHUB_KPIS,
-    { projectId }
+    variables
   );
 
   return {

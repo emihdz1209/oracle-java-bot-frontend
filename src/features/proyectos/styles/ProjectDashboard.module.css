@@ -98,21 +98,21 @@
 
 .kpiGridPrimary {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 12px;
 }
 
 .kpiGridSecondary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 24px;
 }
 
 .kpiGridGithub {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -142,6 +142,7 @@
   margin-top: 16px;
 }
 
+.metricsSectionTitle,
 .githubSectionTitle {
   margin: 0 0 12px;
   color: var(--text-1);
@@ -256,37 +257,13 @@
   font-size: 0.82rem;
 }
 
-.filterUnavailableState {
-  height: 260px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 6px;
-  padding: 0 18px;
-  color: var(--text-3);
-  text-align: center;
-}
-
-.filterUnavailableText {
-  color: var(--text-2);
-  font-size: 0.82rem;
-  font-weight: 800;
-}
-
-.filterUnavailableHint {
-  max-width: 360px;
-  font-size: 0.78rem;
-  line-height: 1.35;
-}
-
 @media (max-width: 1280px) {
   .kpiGridPrimary {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .kpiGridSecondary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .kpiGridGithub {

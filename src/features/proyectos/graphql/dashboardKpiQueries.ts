@@ -64,25 +64,35 @@ export const PROJECT_DASHBOARD_KPIS = `
 `;
 
 export const GITHUB_KPIS = `
-  query GitHubKpis($projectId: ID!) {
-    githubContributions(projectId: $projectId) {
+  query GitHubKpis($projectId: ID!, $sprintId: ID, $developerId: ID) {
+    githubContributions(projectId: $projectId, sprintId: $sprintId) {
+      userId
       name
+      email
       githubUsername
       totalCommits
       openedIssues
+      activeIssues
       closedIssues
     }
     githubSprintActivity(projectId: $projectId) {
+      sprintId
       sprintName
       totalCommits
       openedIssues
       closedIssues
     }
-    githubRepositoryActivity(projectId: $projectId) {
+    githubRepositoryActivity(
+      projectId: $projectId
+      sprintId: $sprintId
+      developerId: $developerId
+    ) {
+      repositoryId
       owner
       repoName
       totalCommits
       openedIssues
+      activeIssues
       closedIssues
     }
   }
