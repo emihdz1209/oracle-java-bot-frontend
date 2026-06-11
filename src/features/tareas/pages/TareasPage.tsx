@@ -25,6 +25,7 @@ import type {
   TareaResponsable,
 } from "@/features/tareas/types/tarea";
 import { CreateTareaForm } from "@/features/tareas/components/CreateTareaForm";
+import { TareaCreatedModal } from "@/features/tareas/components/TareaCreatedModal";
 import { TareaList } from "@/features/tareas/components/TareaList";
 import { TareasModal } from "@/features/tareas/components/TareasModal";
 import { NavBar } from "@/shared/pages/NavBar";
@@ -95,6 +96,7 @@ export const TareasPage = () => {
   const [excludedDeveloperKeys, setExcludedDeveloperKeys] = useState<string[]>([]);
   const [createError, setCreateError] = useState<string | null>(null);
   const createModal = useAppModal();
+  const createdModal = useAppModal();
 
   useEffect(() => {
     setInitialized(false);
@@ -279,6 +281,7 @@ export const TareasPage = () => {
         onSuccess: () => {
           setCreateError(null);
           createModal.closeModal();
+          createdModal.openModal();
         },
         onError: () => {
           setCreateError("No se pudo crear la tarea. Verifica los datos e intenta nuevamente.");
@@ -519,6 +522,7 @@ export const TareasPage = () => {
           onClearSubmitError={() => setCreateError(null)}
         />
       </AppModal>
+      <TareaCreatedModal open={createdModal.isOpen} onClose={createdModal.closeModal} />
     </div>
   );
 };
