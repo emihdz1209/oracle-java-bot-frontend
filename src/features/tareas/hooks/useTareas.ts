@@ -3,6 +3,7 @@ import {
   getTareasByProyecto,
   getTareaById,
   getTaskUsers,
+  getTaskAssignments,
   assignUserToTask,
   removeUserFromTask,
   createTarea,
@@ -56,6 +57,15 @@ export const useTaskUsers = (taskId?: string) => {
     queryKey: ["taskUsers", taskId],
     queryFn: () => getTaskUsers(taskId!),
     enabled: !!taskId,
+    staleTime: 30_000,
+  });
+};
+
+export const useTaskAssignments = (developerIds: string[], sprintIds: string[]) => {
+  return useQuery({
+    queryKey: ["taskAssignments", developerIds, sprintIds],
+    queryFn: () => getTaskAssignments(developerIds, sprintIds),
+    enabled: developerIds.length > 0 && sprintIds.length > 0,
     staleTime: 30_000,
   });
 };

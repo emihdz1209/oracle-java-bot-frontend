@@ -12,8 +12,10 @@ import type { SelectChangeEvent } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useManagedProjects } from "@/features/dashboard/hooks/dashboard";
+import { useMultiEquipoMembers } from "@/features/equipos/hooks/useEquipoMembers";
 import {
   useMultiProjectTareas,
+  useTaskAssignments,
   useCreateTarea,
   useUpdateTareaStatus,
   useDeleteTarea,
@@ -175,9 +177,22 @@ export const TareasPage = () => {
 
   const nameMap: Record<string, string> = {};
   allProjects.forEach((p) => (nameMap[p.projectId] = p.nombre));
+  const selectedTeamIds = useMemo(() => {
+    const teamIds = new Set<string>();
+
+    allProjects.forEach((project) => {
+      if (selectedIds.includes(project.projectId) && project.teamId) {
+        teamIds.add(project.teamId);
+      }
+    });
+
+    return Array.from(teamIds).sort();
+  }, [allProjects, selectedIds]);
 
   // Fetch tasks for all selected projects in parallel
   const { data: allTareas, isLoading: loadingTareas } = useMultiProjectTareas(selectedIds);
+  const { data: membersByTeam, isLoading: loadingTeamMembers } =
+    useMultiEquipoMembers(selectedTeamIds);
   const {
     sprints,
     sprintNameById,
@@ -189,24 +204,44 @@ export const TareasPage = () => {
     handleSprintChange,
   } = useTareasSprintFilter({ projectIds: selectedIds, tareas: allTareas });
 
+  const developerIds = useMemo(() => {
+    const ids = new Set<string>();
+
+    Object.values(membersByTeam).forEach((teamMembers) => {
+      teamMembers.forEach((member) => {
+        if (member.userId) {
+          ids.add(member.userId);
+        }
+      });
+    });
+
+    return Array.from(ids).sort();
+  }, [membersByTeam]);
+  const {
+    data: taskAssignmentsData = [],
+    isLoading: loadingTaskAssignments,
+  } = useTaskAssignments(developerIds, selectedSprintIds);
+  const taskAssignments = Array.isArray(taskAssignmentsData) ? taskAssignmentsData : [];
+
   const developers = useMemo(() => {
     const byKey = new Map<string, { key: string; nombre: string }>();
 
-    allTareas.forEach((tarea) => {
-      (tarea.responsables ?? []).forEach((responsable) => {
-        const key = getDeveloperKey(responsable);
-        const nombre = responsable.nombre?.trim() || responsable.userId?.trim();
-
-        if (key && nombre && !byKey.has(key)) {
-          byKey.set(key, { key, nombre });
-        }
+    taskAssignments.forEach((assignment) => {
+      const key = getDeveloperKey({
+        userId: assignment.developerId,
+        nombre: assignment.developerNombre,
       });
+      const nombre = assignment.developerNombre?.trim() || assignment.developerId?.trim();
+
+      if (key && nombre && !byKey.has(key)) {
+        byKey.set(key, { key, nombre });
+      }
     });
 
     return Array.from(byKey.values()).sort((a, b) =>
       a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
     );
-  }, [allTareas]);
+  }, [taskAssignments]);
 
   const allDeveloperKeys = developers.map((developer) => developer.key);
   const developerNameByKey = Object.fromEntries(
@@ -243,14 +278,28 @@ export const TareasPage = () => {
     }
 
     const selected = new Set(selectedDeveloperKeys);
+    const matchingTaskIds = new Set(
+      taskAssignments
+        .filter((assignment) => {
+          const key = getDeveloperKey({
+            userId: assignment.developerId,
+            nombre: assignment.developerNombre,
+          });
+          return key ? selected.has(key) : false;
+        })
+        .map((assignment) => assignment.taskId.replace(/-/g, "").toLowerCase())
+    );
 
     return filteredTareas.filter((tarea) =>
-      (tarea.responsables ?? []).some((responsable) => {
-        const key = getDeveloperKey(responsable);
-        return key ? selected.has(key) : false;
-      })
+      matchingTaskIds.has(tarea.taskId.replace(/-/g, "").toLowerCase())
     );
-  }, [allDevelopersSelected, developers.length, filteredTareas, selectedDeveloperKeys]);
+  }, [
+    allDevelopersSelected,
+    developers.length,
+    filteredTareas,
+    selectedDeveloperKeys,
+    taskAssignments,
+  ]);
 
   // Projects currently visible in the filter — used to populate the create form
   const selectedProjects = allProjects.filter((p) => selectedIds.includes(p.projectId));
@@ -462,44 +511,48 @@ export const TareasPage = () => {
                   Developers
                 </span>
 
-                <FormControl size="small" style={{ width: 280 }}>
-                  <Select
-                    multiple
-                    value={selectedDeveloperKeys}
-                    onChange={handleDeveloperSelectionChange}
-                    renderValue={(sel) => {
-                      if (developers.length === 0) {
-                        return "Sin developers";
-                      }
+                {(loadingTeamMembers || loadingTaskAssignments) && selectedIds.length > 0 ? (
+                  <CircularProgress size={20} />
+                ) : (
+                  <FormControl size="small" style={{ width: 280 }}>
+                    <Select
+                      multiple
+                      value={selectedDeveloperKeys}
+                      onChange={handleDeveloperSelectionChange}
+                      renderValue={(sel) => {
+                        if (developers.length === 0) {
+                          return "Sin developers";
+                        }
 
-                      if (allDevelopersSelected) {
-                        return "Todos los developers";
-                      }
+                        if (allDevelopersSelected) {
+                          return "Todos los developers";
+                        }
 
-                      if (sel.length === 0) {
-                        return "Ningún developer";
-                      }
+                        if (sel.length === 0) {
+                          return "Ningún developer";
+                        }
 
-                      return sel.map((key) => developerNameByKey[key] ?? key).join(", ");
-                    }}
-                    displayEmpty
-                    disabled={selectedIds.length === 0 || developers.length === 0}
-                  >
-                    <MenuItem value={ALL_DEVELOPERS_VALUE} disabled={developers.length === 0}>
-                      <Checkbox checked={allDevelopersSelected} size="small" />
-                      <ListItemText primary="Seleccionar todos" />
-                    </MenuItem>
-                    {developers.map((developer) => (
-                      <MenuItem key={developer.key} value={developer.key}>
-                        <Checkbox
-                          checked={selectedDeveloperKeys.includes(developer.key)}
-                          size="small"
-                        />
-                        <ListItemText primary={developer.nombre} />
+                        return sel.map((key) => developerNameByKey[key] ?? key).join(", ");
+                      }}
+                      displayEmpty
+                      disabled={selectedIds.length === 0 || developers.length === 0}
+                    >
+                      <MenuItem value={ALL_DEVELOPERS_VALUE} disabled={developers.length === 0}>
+                        <Checkbox checked={allDevelopersSelected} size="small" />
+                        <ListItemText primary="Seleccionar todos" />
                       </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                      {developers.map((developer) => (
+                        <MenuItem key={developer.key} value={developer.key}>
+                          <Checkbox
+                            checked={selectedDeveloperKeys.includes(developer.key)}
+                            size="small"
+                          />
+                          <ListItemText primary={developer.nombre} />
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
 
                 {selectedIds.length > 0 && (
                   <span className="filter-count">

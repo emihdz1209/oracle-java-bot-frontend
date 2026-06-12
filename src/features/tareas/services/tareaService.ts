@@ -1,6 +1,7 @@
 import { apiClient } from "@/shared/api/apiClient";
 import type {
   Tarea,
+  SprintTaskAssignment,
   TaskAssignment,
   CreateTareaRequest,
   UpdateTareaRequest,
@@ -36,6 +37,30 @@ const normalizePathIds = (taskId: string, userId: string) => ({
   userId: toRawId(userId),
 });
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const normalizeTaskAssignmentsResponse = (value: unknown): SprintTaskAssignment[] => {
+  if (Array.isArray(value)) {
+    return value as SprintTaskAssignment[];
+  }
+
+  if (!isRecord(value)) {
+    return [];
+  }
+
+  const possibleArrays = [
+    value.data,
+    value.assignments,
+    value.taskAssignments,
+    value.content,
+    value.items,
+  ];
+
+  const arrayValue = possibleArrays.find(Array.isArray);
+  return Array.isArray(arrayValue) ? (arrayValue as SprintTaskAssignment[]) : [];
+};
+
 export const getTareasByProyecto = async (projectId: string): Promise<Tarea[]> => {
   const response = await apiClient.get<Tarea[]>(`/api/projects/${projectId}/tasks`);
   return response.data;
@@ -49,6 +74,20 @@ export const getTareaById = async (taskId: string): Promise<Tarea> => {
 export const getTaskUsers = async (taskId: string): Promise<TaskAssignment[]> => {
   const response = await apiClient.get<TaskAssignment[]>(`/api/tasks/${taskId}/users`);
   return response.data;
+};
+
+export const getTaskAssignments = async (
+  developerIds: string[],
+  sprintIds: string[]
+): Promise<SprintTaskAssignment[]> => {
+  const params = new URLSearchParams();
+  params.set("developerIds", developerIds.map(toRawId).join(","));
+  params.set("sprintIds", sprintIds.map(toRawId).join(","));
+
+  const response = await apiClient.get<unknown>(
+    `/api/task-assignments?${params.toString()}`
+  );
+  return normalizeTaskAssignmentsResponse(response.data);
 };
 
 export const assignUserToTask = async (taskId: string, userId: string): Promise<void> => {

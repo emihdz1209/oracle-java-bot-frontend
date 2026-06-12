@@ -26,6 +26,18 @@ export interface TaskAssignment {
   userId: string;
 }
 
+export interface SprintTaskAssignment {
+  taskId: string;
+  titulo: string;
+  developerId: string;
+  developerNombre: string;
+  sprintId: string;
+  tiempoEstimado: number | null;
+  tiempoReal: number | null;
+  estadoId: number;
+  prioridadId: number;
+}
+
 export interface CreateTareaRequest {
   titulo: string;
   descripcion: string;
